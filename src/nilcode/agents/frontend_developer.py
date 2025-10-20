@@ -144,7 +144,7 @@ After implementation, update the task status to completed and provide a summary.
                 tool = next((t for t in all_tools if t.name == tool_call["name"]), None)
 
                 if tool:
-                    print(f"    🔧 Using tool: {tool.name}")
+                    print(f"    🔧 Using tool: {tool.name}: {tool_call['args']}")
                     result = tool.invoke(tool_call["args"])
                     tool_outputs.append(result)
 

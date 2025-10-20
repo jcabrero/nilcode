@@ -139,7 +139,7 @@ status to completed and provide a concise summary.""")
                 if not tool:
                     continue
 
-                print(f"    🔧 Using tool: {tool.name}")
+                print(f"    🔧 Using tool: {tool.name}: {tool_call['args']}")
                 result = tool.invoke(tool_call["args"])
 
                 from langchain_core.messages import ToolMessage
