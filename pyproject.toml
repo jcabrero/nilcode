@@ -1,0 +1,21 @@
+[project]
+name = "nilcode"
+version = "0.1.0"
+description = "Multi-agent LangChain system for software development tasks"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "langchain>=1.0.1",
+    "langchain-anthropic>=1.0.0",
+    "langchain-openai>=1.0.0",
+    "langchain-core>=1.0.0",
+    "langgraph>=1.0.0",
+    "langsmith>=0.4.37",
+    "python-dotenv>=1.1.1",
+]
+
+[project.scripts]
+nilcode = "nilcode.main_agent:main"
+
+[tool.uv]
+package = true
