@@ -340,7 +340,7 @@ wheels = [
 
 [[package]]
 name = "nilcode"
-version = "0.1.0"
+version = "2.0.15"
 source = { editable = "." }
 dependencies = [
     { name = "langchain" },

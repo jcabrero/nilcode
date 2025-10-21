@@ -8,8 +8,7 @@ from typing import Dict, List, Optional
 # Execution order helps route work across specialized agents.
 AGENT_EXECUTION_ORDER: List[str] = [
     "software_architect",
-    "frontend_developer",
-    "backend_developer",
+    "coder",  # Handles all implementation including dependencies, frontend, backend
     "tester",
 ]
 

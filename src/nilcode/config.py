@@ -29,19 +29,10 @@ DEFAULT_CONFIG = {
             "temperature": 0.3,
             "max_tasks": 20
         },
-        "context_gatherer": {
-            "temperature": 0.2,
-            "max_files_to_read": 50,
-            "auto_gather": True
-        },
         "software_architect": {
             "temperature": 0.2
         },
-        "frontend_developer": {
-            "temperature": 0.2,
-            "preferred_frameworks": []
-        },
-        "backend_developer": {
+        "coder": {
             "temperature": 0.2,
             "preferred_frameworks": []
         },
@@ -53,16 +44,18 @@ DEFAULT_CONFIG = {
             "temperature": 0.1,
             "max_iterations": 5,
             "auto_fix": True
+        },
+        "orchestrator": {
+            "temperature": 0.2
         }
     },
     "llm_settings": {
-        "model": "openai/gpt-oss-20b",
+        "model": "openai/gpt-oss-120b",
         "base_url": None,
         "max_tokens": 4096,
         "timeout": 60
     },
     "workflow_settings": {
-        "enable_context_gathering": True,
         "enable_error_recovery": True,
         "enable_auto_testing": True,
         "enable_auto_linting": False,
