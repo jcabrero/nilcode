@@ -6,12 +6,41 @@ from typing import Dict, Any
 from datetime import datetime
 
 # Version information
-__version__ = "2.0.0"
+__version__ = "2.0.2"
 __version_name__ = "Validator"
 __release_date__ = "2025-01-21"
 
 # Version history
 VERSION_HISTORY = {
+    "2.0.2": {
+        "name": "Validator",
+        "date": "2025-01-21",
+        "description": "Enhanced tester agent with actual test code generation and import validation",
+        "features": [
+            "Import validation and fixing tools (scan_all_imports, validate_import_consistency)",
+            "Test code generation templates for Python (pytest/unittest) and JavaScript (Jest/Vitest)",
+            "FastAPI test generation with TestClient",
+            "React component test generation with React Testing Library",
+            "Tester agent now writes ACTUAL test code, not empty test files",
+            "5-phase validation workflow: Imports → Syntax → Quality → Tests → Report",
+            "Automatic import issue detection and fixing",
+        ],
+        "breaking_changes": [],
+    },
+    "2.0.1": {
+        "name": "Validator",
+        "date": "2025-01-21",
+        "description": "Added Dependency Manager agent for complete project configuration",
+        "features": [
+            "New Dependency Manager agent creates package.json/pyproject.toml",
+            "Automatic generation of .env.example files",
+            "Framework-specific config files (tsconfig.json, next.config.js, etc.)",
+            "Language-appropriate .gitignore files",
+            "Complete dependency specifications with versions",
+            "README.md with installation and run instructions",
+        ],
+        "breaking_changes": [],
+    },
     "2.0.0": {
         "name": "Validator",
         "date": "2025-01-21",

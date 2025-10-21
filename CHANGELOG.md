@@ -5,6 +5,117 @@ All notable changes to NilCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2025-01-21 "Validator"
+
+### Added
+
+#### Import Validation System
+- **NEW TOOLS**: Import validation and fixing (`import_validator.py`)
+- **scan_all_imports**: Extracts all import statements from Python and JavaScript files
+- **validate_import_consistency**: Checks for missing modules, incorrect paths, non-existent references
+- **suggest_import_fixes**: Provides automated fix suggestions for import issues
+- Detects relative import errors in both Python and JavaScript/TypeScript
+- Validates module existence and path correctness
+
+#### Test Code Generation System
+- **NEW TOOLS**: Test template generators (`test_templates.py`)
+- **generate_python_test**: Creates pytest/unittest test code with real assertions
+- **generate_fastapi_test**: Creates FastAPI endpoint tests with TestClient
+- **generate_javascript_test**: Creates Jest/Vitest test code for functions
+- **generate_react_test**: Creates React Testing Library component tests
+- **get_test_framework_for_language**: Recommends appropriate testing framework
+- Templates include: AAA pattern, edge cases, error handling, proper assertions
+
+#### Enhanced Tester Agent
+- **5-Phase Validation Workflow**:
+  1. Import Validation & Fixing (scans and fixes all import issues)
+  2. Comprehensive Syntax Validation
+  3. Code Quality Analysis
+  4. **ACTUAL Test Code Generation** (not just empty files)
+  5. Comprehensive Reporting
+- Tester now WRITES REAL TEST CODE with working assertions
+- Automatically detects and fixes import inconsistencies
+- Creates complete test files with multiple test cases per function/component
+- Includes concrete examples in system prompt for Python and JavaScript tests
+
+### Changed
+
+#### Tester Agent Behavior
+- **CRITICAL**: Tester now generates actual test code instead of empty test file shells
+- Import validation runs FIRST before other validation phases
+- Test files include at least 3 test cases: success, edge cases, error handling
+- Uses test generation tools to ensure proper test structure
+- Increased emphasis on writing runnable, complete tests
+
+#### Tool Access
+- Tester agent now has access to 6 new tools:
+  - 3 import validation tools
+  - 5 test generation tools (including framework selection)
+- Max iterations remains at 30 to accommodate additional validation phases
+
+### Fixed
+
+- **MAJOR**: Tester agent now writes actual test code instead of empty files
+- **MAJOR**: Import mismatches between files are now detected and fixed automatically
+- Missing test assertions - templates now include proper assertion patterns
+- Import validation catches relative path errors, missing modules, incorrect references
+
+### User Feedback Addressed
+
+From user: "The tester is still shit, it does not create tests. The imports do not match with one another"
+
+- ✅ Tester now creates ACTUAL test code with real assertions
+- ✅ Import validation and fixing system implemented
+- ✅ Test templates provide complete, runnable test code
+- ✅ 5-phase workflow ensures thorough validation
+
+---
+
+## [2.0.1] - 2025-01-21 "Validator"
+
+### Added
+
+#### Dependency Manager Agent
+- **NEW AGENT**: Dependency Manager creates all project configuration files
+- **package.json**: Automatically generated for JavaScript/TypeScript/Node.js projects
+  - Includes all required dependencies (React, Next.js, Vue, Express, etc.)
+  - Includes dev dependencies (TypeScript, ESLint, testing frameworks)
+  - Adds appropriate scripts (dev, build, start, test, lint)
+- **pyproject.toml**: Automatically generated for Python projects
+  - Includes all required dependencies (FastAPI, Flask, Django, etc.)
+  - Includes dev dependencies (pytest, black, mypy)
+  - Modern Python packaging format
+- **.env.example**: Template for environment variables
+  - API keys, database URLs, configuration
+  - Comments explaining each variable
+- **.gitignore**: Language-appropriate ignore files
+  - Node.js: node_modules/, .env, dist/, build/
+  - Python: __pycache__/, .venv/, *.pyc
+- **Framework configs**: tsconfig.json, next.config.js, vite.config.js, etc.
+- **README.md**: Installation and run instructions
+
+#### Workflow Improvements
+- Execution order updated: Architect → **Dependency Manager** → Developers → Tester
+- Planner updated to assign dependency_manager tasks
+- All generated projects are now immediately runnable
+- No manual configuration needed
+
+### Changed
+
+#### Agent Coordination
+- Dependency Manager runs AFTER Software Architect
+- Dependency Manager runs BEFORE Developer agents
+- Ensures config files exist before code is written
+
+### Fixed
+
+- Projects now include complete dependency lists
+- Missing package.json/pyproject.toml issue resolved
+- Environment variable setup documented
+- Installation instructions provided
+
+---
+
 ## [2.0.0] - 2025-01-21 "Validator"
 
 ### Major Features
@@ -154,16 +265,22 @@ uv run nilcode
 
 ## Version Comparison
 
-| Feature | v1.0.0 | v2.0.0 |
-|---------|--------|--------|
-| Syntax Validation | ❌ | ✅ |
-| Language Detection | ❌ | ✅ |
-| Project Manifest | ❌ | ✅ |
-| Self-Correction | ❌ | ✅ |
-| Multi-language Support | Partial | Full |
-| Error Handling | Basic | Robust |
-| Version System | ❌ | ✅ |
-| Comprehensive Docs | ❌ | ✅ |
+| Feature | v1.0.0 | v2.0.0 | v2.0.1 | v2.0.2 |
+|---------|--------|--------|--------|--------|
+| Syntax Validation | ❌ | ✅ | ✅ | ✅ |
+| Language Detection | ❌ | ✅ | ✅ | ✅ |
+| Project Manifest | ❌ | ✅ | ✅ | ✅ |
+| Self-Correction | ❌ | ✅ | ✅ | ✅ |
+| Multi-language Support | Partial | Full | Full | Full |
+| Error Handling | Basic | Robust | Robust | Robust |
+| Version System | ❌ | ✅ | ✅ | ✅ |
+| Comprehensive Docs | ❌ | ✅ | ✅ | ✅ |
+| Dependency Manager | ❌ | ❌ | ✅ | ✅ |
+| Config File Generation | ❌ | ❌ | ✅ | ✅ |
+| Import Validation | ❌ | ❌ | ❌ | ✅ |
+| Test Code Generation | ❌ | ❌ | ❌ | ✅ |
+| Actual Test Code | ❌ | ❌ | ❌ | ✅ |
+| Import Fixing | ❌ | ❌ | ❌ | ✅ |
 
 ---
 

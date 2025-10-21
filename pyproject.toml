@@ -1,6 +1,6 @@
 [project]
 name = "nilcode"
-version = "2.0.1"
+version = "2.0.7"
 description = "Production-ready multi-agent AI development system with syntax validation and language-agnostic code generation"
 readme = "README.md"
 requires-python = ">=3.14"

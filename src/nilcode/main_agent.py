@@ -29,6 +29,7 @@ else:
     from .agents.orchestrator import create_orchestrator_agent
     from .agents.planner import create_planner_agent
     from .agents.software_architect import create_software_architect_agent
+    from .agents.dependency_manager import create_dependency_manager_agent
     from .agents.frontend_developer import create_frontend_developer_agent
     from .agents.backend_developer import create_backend_developer_agent
     from .agents.tester import create_tester_agent
@@ -57,6 +58,7 @@ class MultiAgentSystem:
         self.planner = create_planner_agent(api_key, base_url)
         self.context_gatherer = create_context_gatherer_agent(api_key, base_url)
         self.software_architect = create_software_architect_agent(api_key, base_url)
+        self.dependency_manager = create_dependency_manager_agent(api_key, base_url)
         self.frontend_developer = create_frontend_developer_agent(api_key, base_url)
         self.backend_developer = create_backend_developer_agent(api_key, base_url)
         self.tester = create_tester_agent(api_key, base_url)
@@ -80,6 +82,7 @@ class MultiAgentSystem:
         workflow.add_node("planner", self.planner)
         workflow.add_node("context_gatherer", self.context_gatherer)
         workflow.add_node("software_architect", self.software_architect)
+        workflow.add_node("dependency_manager", self.dependency_manager)
         workflow.add_node("frontend_developer", self.frontend_developer)
         workflow.add_node("backend_developer", self.backend_developer)
         workflow.add_node("tester", self.tester)
@@ -102,6 +105,7 @@ class MultiAgentSystem:
         all_agents = {
             "context_gatherer": "context_gatherer",
             "software_architect": "software_architect",
+            "dependency_manager": "dependency_manager",
             "frontend_developer": "frontend_developer",
             "backend_developer": "backend_developer",
             "tester": "tester",
@@ -114,6 +118,7 @@ class MultiAgentSystem:
         workflow.add_conditional_edges("planner", route_next, all_agents)
         workflow.add_conditional_edges("context_gatherer", route_next, all_agents)
         workflow.add_conditional_edges("software_architect", route_next, all_agents)
+        workflow.add_conditional_edges("dependency_manager", route_next, all_agents)
         workflow.add_conditional_edges("frontend_developer", route_next, all_agents)
         workflow.add_conditional_edges("backend_developer", route_next, all_agents)
         workflow.add_conditional_edges("tester", route_next, all_agents)
@@ -221,14 +226,7 @@ def main():
     except ImportError:
         from cli import interactive_mode, run_single_command, print_banner, print_error
 
-    # Create the agent system
-    try:
-        agent_system = create_agent_system()
-    except ValueError as e:
-        print_error(str(e))
-        return 1
-
-    # Check for command-line arguments
+    # Check for version/changelog flags BEFORE requiring API key
     if len(sys.argv) > 1:
         # Check for version flag
         if sys.argv[1] in ['--version', '-v', 'version']:
@@ -248,6 +246,15 @@ def main():
             print_changelog()
             return 0
 
+    # Create the agent system (requires API key)
+    try:
+        agent_system = create_agent_system()
+    except ValueError as e:
+        print_error(str(e))
+        return 1
+
+    # Check for command-line arguments
+    if len(sys.argv) > 1:
         # Run single command mode
         command = " ".join(sys.argv[1:])
         return run_single_command(agent_system, command)
