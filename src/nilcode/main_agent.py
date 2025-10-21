@@ -19,8 +19,7 @@ if __name__ == "__main__" and __package__ is None:
     from .agents.orchestrator import create_orchestrator_agent
     from .agents.planner import create_planner_agent
     from .agents.software_architect import create_software_architect_agent
-    from .agents.frontend_developer import create_frontend_developer_agent
-    from .agents.backend_developer import create_backend_developer_agent
+    from .agents.coder import create_coder_agent
     from .agents.tester import create_tester_agent
     from .agents.context_gatherer import create_context_gatherer_agent
     from .agents.error_recovery import create_error_recovery_agent
@@ -29,9 +28,7 @@ else:
     from .agents.orchestrator import create_orchestrator_agent
     from .agents.planner import create_planner_agent
     from .agents.software_architect import create_software_architect_agent
-    from .agents.dependency_manager import create_dependency_manager_agent
-    from .agents.frontend_developer import create_frontend_developer_agent
-    from .agents.backend_developer import create_backend_developer_agent
+    from .agents.coder import create_coder_agent
     from .agents.tester import create_tester_agent
     from .agents.context_gatherer import create_context_gatherer_agent
     from .agents.error_recovery import create_error_recovery_agent
@@ -58,9 +55,7 @@ class MultiAgentSystem:
         self.planner = create_planner_agent(api_key, base_url)
         self.context_gatherer = create_context_gatherer_agent(api_key, base_url)
         self.software_architect = create_software_architect_agent(api_key, base_url)
-        self.dependency_manager = create_dependency_manager_agent(api_key, base_url)
-        self.frontend_developer = create_frontend_developer_agent(api_key, base_url)
-        self.backend_developer = create_backend_developer_agent(api_key, base_url)
+        self.coder = create_coder_agent(api_key, base_url)
         self.tester = create_tester_agent(api_key, base_url)
         self.error_recovery = create_error_recovery_agent(api_key, base_url)
 
@@ -82,9 +77,7 @@ class MultiAgentSystem:
         workflow.add_node("planner", self.planner)
         workflow.add_node("context_gatherer", self.context_gatherer)
         workflow.add_node("software_architect", self.software_architect)
-        workflow.add_node("dependency_manager", self.dependency_manager)
-        workflow.add_node("frontend_developer", self.frontend_developer)
-        workflow.add_node("backend_developer", self.backend_developer)
+        workflow.add_node("coder", self.coder)
         workflow.add_node("tester", self.tester)
         workflow.add_node("error_recovery", self.error_recovery)
 
@@ -105,9 +98,7 @@ class MultiAgentSystem:
         all_agents = {
             "context_gatherer": "context_gatherer",
             "software_architect": "software_architect",
-            "dependency_manager": "dependency_manager",
-            "frontend_developer": "frontend_developer",
-            "backend_developer": "backend_developer",
+            "coder": "coder",
             "tester": "tester",
             "error_recovery": "error_recovery",
             "orchestrator": "orchestrator",
@@ -118,9 +109,7 @@ class MultiAgentSystem:
         workflow.add_conditional_edges("planner", route_next, all_agents)
         workflow.add_conditional_edges("context_gatherer", route_next, all_agents)
         workflow.add_conditional_edges("software_architect", route_next, all_agents)
-        workflow.add_conditional_edges("dependency_manager", route_next, all_agents)
-        workflow.add_conditional_edges("frontend_developer", route_next, all_agents)
-        workflow.add_conditional_edges("backend_developer", route_next, all_agents)
+        workflow.add_conditional_edges("coder", route_next, all_agents)
         workflow.add_conditional_edges("tester", route_next, all_agents)
         workflow.add_conditional_edges("error_recovery", route_next, all_agents)
         

@@ -205,7 +205,7 @@ def create_orchestrator_agent(api_key: str, base_url: str = None) -> Orchestrato
         Configured OrchestratorAgent
     """
     model_kwargs = {
-        "model": "openai/gpt-oss-20b",
+        "model": "openai/gpt-oss-20b:free",
         "api_key": api_key,
     }
 

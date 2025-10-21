@@ -248,7 +248,7 @@ def create_context_gatherer_agent(api_key: str, base_url: str = None) -> Context
         Configured ContextGathererAgent
     """
     model_kwargs = {
-        "model": "openai/gpt-oss-20b",
+        "model": "openai/gpt-oss-20b:free",
         "api_key": api_key,
     }
 

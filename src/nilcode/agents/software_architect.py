@@ -16,9 +16,16 @@ from ..state.agent_state import AgentState
 from ..tools.file_operations import file_tools
 from ..tools.task_management import task_tools, set_task_storage
 from .utils import determine_next_agent
+from ..prompts.claude import PROMPT
 
 
-ARCHITECT_SYSTEM_PROMPT = """You are a Software Architect Agent in a multi-agent software development system.
+ARCHITECT_SYSTEM_PROMPT = PROMPT.replace("{", "{{").replace("}", "}}") + """
+
+## Code References
+
+When referencing specific functions or pieces of code include the pattern `file_path:line_number` to allow the user to easily navigate to the source code location.
+
+You are a Software Architect Agent in a multi-agent software development system.
 
 Your role is to:
 1. Establish the foundational project structure (directories, scaffolding)
@@ -113,8 +120,7 @@ class SoftwareArchitectAgent:
             next_agent = determine_next_agent(tasks)
             status = "implementing" if next_agent in {
                 "software_architect",
-                "frontend_developer",
-                "backend_developer",
+                "coder",
             } else "testing"
 
             return {
@@ -232,7 +238,7 @@ After completing all setup, update the task status to completed and provide a co
 
         next_agent = determine_next_agent(updated_tasks, prefer_agent="software_architect")
         status = "architecting" if next_agent == "software_architect" else (
-            "implementing" if next_agent in {"frontend_developer", "backend_developer"} else "testing"
+            "implementing" if next_agent == "coder" else "testing"
         )
 
         # Determine manifest and guidelines paths from working directory
@@ -267,7 +273,7 @@ def create_software_architect_agent(api_key: str, base_url: str = None) -> Softw
         Configured SoftwareArchitectAgent
     """
     model_kwargs: Dict[str, Any] = {
-        "model": "openai/gpt-oss-20b",
+        "model": "openai/gpt-oss-20b:free",
         "api_key": api_key,
     }
 

@@ -56,7 +56,7 @@ DEFAULT_CONFIG = {
         }
     },
     "llm_settings": {
-        "model": "openai/gpt-oss-20b",
+        "model": "openai/gpt-oss-20b:free",
         "base_url": None,
         "max_tokens": 4096,
         "timeout": 60

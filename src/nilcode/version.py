@@ -6,7 +6,7 @@ from typing import Dict, Any
 from datetime import datetime
 
 # Version information
-__version__ = "2.0.2"
+__version__ = "2.0.10"
 __version_name__ = "Validator"
 __release_date__ = "2025-01-21"
 
