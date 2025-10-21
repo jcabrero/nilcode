@@ -8,6 +8,12 @@ from typing import Optional
 from datetime import datetime
 from pathlib import Path
 
+# Import version information
+try:
+    from .version import get_banner, get_version, get_version_info
+except ImportError:
+    from version import get_banner, get_version, get_version_info
+
 
 class Colors:
     """ANSI color codes for terminal output."""
@@ -23,22 +29,8 @@ class Colors:
 
 
 def print_banner():
-    """Print the NilCode banner."""
-    banner = """
-╔═══════════════════════════════════════════════════════════════════╗
-║                                                                   ║
-║   ███╗   ██╗██╗██╗      ██████╗ ██████╗ ██████╗ ███████╗        ║
-║   ████╗  ██║██║██║     ██╔════╝██╔═══██╗██╔══██╗██╔════╝        ║
-║   ██╔██╗ ██║██║██║     ██║     ██║   ██║██║  ██║█████╗          ║
-║   ██║╚██╗██║██║██║     ██║     ██║   ██║██║  ██║██╔══╝          ║
-║   ██║ ╚████║██║███████╗╚██████╗╚██████╔╝██████╔╝███████╗        ║
-║   ╚═╝  ╚═══╝╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝        ║
-║                                                                   ║
-║            Multi-Agent AI Development System v2.0                ║
-║                    Enhanced Claude Code Clone                    ║
-║                                                                   ║
-╚═══════════════════════════════════════════════════════════════════╝
-"""
+    """Print the NilCode banner with version information."""
+    banner = get_banner()
     print(f"{Colors.OKCYAN}{banner}{Colors.ENDC}")
 
 
@@ -240,6 +232,8 @@ def interactive_mode(agent_system):
     
     commands = {
         "help": "Show available commands",
+        "version": "Show version information",
+        "changelog": "Show version changelog",
         "exit": "Exit the program",
         "quit": "Exit the program",
         "clear": "Clear the screen",
@@ -271,7 +265,17 @@ def interactive_mode(agent_system):
             if user_input.lower() == 'status':
                 print_info("System ready and waiting for tasks")
                 continue
-            
+
+            if user_input.lower() == 'version':
+                from .version import print_version_info
+                print_version_info()
+                continue
+
+            if user_input.lower() == 'changelog':
+                from .version import print_changelog
+                print_changelog(limit=3)
+                continue
+
             # Execute the request
             print_section(f"Processing: {user_input[:50]}...", "─")
             
@@ -280,7 +284,7 @@ def interactive_mode(agent_system):
                 task_count = 0
                 for state_update in agent_system.stream(user_input):
                     # Extract agent name from update
-                    if state_update:
+                    if state_update and len(state_update.keys()) > 0:
                         agent_name = list(state_update.keys())[0]
                         print_agent_status(agent_name, "completed")
                         task_count += 1
@@ -324,7 +328,7 @@ def run_single_command(agent_system, command: str, verbose: bool = True):
         return 0 if status == "completed" else 1
     
     except Exception as e:
-        print_error(f"Execution failed: {str(e)}")
+        print_error(f"Execution failed: {str(e)} ")
         if os.getenv("DEBUG"):
             import traceback
             traceback.print_exc()

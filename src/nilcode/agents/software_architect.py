@@ -21,30 +21,52 @@ from .utils import determine_next_agent
 ARCHITECT_SYSTEM_PROMPT = """You are a Software Architect Agent in a multi-agent software development system.
 
 Your role is to:
-1. Propose and create the initial project structure (directories, scaffolding)
-2. Set up configuration files, base modules, and shared interfaces
-3. Document architectural decisions and guidelines for other agents
-4. Ensure the repository is ready for frontend, backend, and testing work
+1. Establish the foundational project structure (directories, scaffolding)
+2. Create a PROJECT_MANIFEST.md documenting all architectural decisions
+3. Create .agent-guidelines/ directory with specific coding standards
+4. Set up configuration files, base modules, and shared interfaces
+5. Ensure all other agents can follow your established patterns
+
+CRITICAL REQUIREMENTS - YOU MUST DO THESE FIRST:
+
+1. **Read existing project state**:
+   - ALWAYS use list_files to check what exists before creating files
+   - Use read_file to understand existing patterns and conventions
+   - Never overwrite files without checking their contents first
+
+2. **Create PROJECT_MANIFEST.md** containing:
+   - Project name and description
+   - Technology stack (languages, frameworks, libraries)
+   - Directory structure with explanations
+   - File naming conventions
+   - Architecture patterns being used
+   - Dependencies and how to install them
+
+3. **Create .agent-guidelines/ directory** with:
+   - `coding-standards.md`: Language-specific coding standards
+   - `file-structure.md`: Where different types of files should go
+   - `naming-conventions.md`: How to name files, functions, classes, variables
+
+4. **Follow these patterns**:
+   - For Python: Use snake_case for functions/variables, PascalCase for classes
+   - For JavaScript/TypeScript: Use camelCase for functions/variables, PascalCase for components
+   - Always include proper imports/exports
+   - Create README.md if it doesn't exist
 
 You have access to file operation tools:
-- read_file: Read existing files
+- read_file: Read existing files (USE THIS FIRST!)
 - write_file: Create new files
 - edit_file: Modify existing files
-- list_files: List files in directories
+- list_files: List files in directories (USE THIS BEFORE CREATING!)
 - create_directory: Create directories
 
-You also have task management tools to update task status.
-
-Best Practices:
-- Keep structure consistent and easy to navigate
-- Document decisions using concise markdown when helpful
-- Avoid overwriting existing user files without reason
-- Prepare placeholders so other agents can implement features efficiently
-
-When you complete a task:
-1. Use file tools to scaffold the repository
-2. Update the task status to "completed"
-3. Provide a summary of changes and rationale
+Task completion checklist:
+1. ✓ Listed existing files to understand current state
+2. ✓ Created PROJECT_MANIFEST.md with complete documentation
+3. ✓ Created .agent-guidelines/ with coding standards
+4. ✓ Set up proper directory structure
+5. ✓ Updated task status to "completed"
+6. ✓ Provided comprehensive summary
 """
 
 
@@ -111,16 +133,25 @@ class SoftwareArchitectAgent:
 
 Current plan: {plan}
 
+Detected languages: {languages}
+Frontend technologies: {frontend_tech}
+Backend technologies: {backend_tech}
+
 Current task: {task_content}
 
-Please prepare the repository structure and supporting documentation as needed.
-Use file tools to scaffold the project. After implementation, update the task
-status to completed and provide a concise summary.""")
+IMPORTANT: Before creating any files, use list_files to see what already exists.
+Create PROJECT_MANIFEST.md and .agent-guidelines/ directory first.
+Document the technology stack ({languages}) and all architectural decisions.
+
+After completing all setup, update the task status to completed and provide a comprehensive summary.""")
         ])
 
         messages = prompt.format_messages(
             user_request=state["user_request"],
             plan=state.get("plan", ""),
+            languages=", ".join(state.get("detected_languages", [])) or "Not specified",
+            frontend_tech=", ".join(state.get("frontend_tech", [])) or "None",
+            backend_tech=", ".join(state.get("backend_tech", [])) or "None",
             task_content=current_task["content"],
         )
 
@@ -135,36 +166,61 @@ status to completed and provide a concise summary.""")
             iteration += 1
 
             for tool_call in response.tool_calls:
-                tool = next((t for t in all_tools if t.name == tool_call["name"]), None)
-                if not tool:
+                try:
+                    # Handle both dict and object-style tool calls
+                    if isinstance(tool_call, dict):
+                        tool_name = tool_call.get("name")
+                        tool_args = tool_call.get("args", {})
+                        tool_id = tool_call.get("id")
+                    else:
+                        # Handle as object with attributes
+                        tool_name = getattr(tool_call, "name", None)
+                        tool_args = getattr(tool_call, "args", {})
+                        tool_id = getattr(tool_call, "id", None)
+
+                    if not tool_name:
+                        print(f"    ⚠️ Skipping invalid tool call")
+                        continue
+
+                    # Find the tool
+                    tool = next((t for t in all_tools if t.name == tool_name), None)
+                    if not tool:
+                        print(f"    ⚠️ Tool '{tool_name}' not found")
+                        continue
+
+                    print(f"    🔧 Using tool: {tool.name}: {tool_args}")
+                    result = tool.invoke(tool_args)
+
+                    from langchain_core.messages import ToolMessage
+
+                    messages_history.append(ToolMessage(
+                        content=str(result),
+                        tool_call_id=tool_id if tool_id else str(iteration)
+                    ))
+                except Exception as e:
+                    print(f"    ⚠️ Error processing tool call: {e}")
                     continue
-
-                print(f"    🔧 Using tool: {tool.name}: {tool_call['args']}")
-                result = tool.invoke(tool_call["args"])
-
-                from langchain_core.messages import ToolMessage
-
-                messages_history.append(ToolMessage(
-                    content=str(result),
-                    tool_call_id=tool_call["id"]
-                ))
 
             response = self.model.invoke(messages_history)
             messages_history.append(response)
 
         # Generate final summary after all tools are done
-        if not response.content or len(response.content.strip()) < 50:
-            print("    📝 Generating final summary...")
-            from langchain_core.messages import HumanMessage
-            messages_history.append(HumanMessage(
-                content="Please provide a comprehensive summary of what you just implemented, including what files/directories were created and what structure was set up."
-            ))
-            response = self.model.invoke(messages_history)
-            messages_history.append(response)
+        try:
+            if not response.content or len(response.content.strip()) < 50:
+                print("    📝 Generating final summary...")
+                from langchain_core.messages import HumanMessage
+                messages_history.append(HumanMessage(
+                    content="Please provide a comprehensive summary of what you just implemented, including what files/directories were created and what structure was set up."
+                ))
+                response = self.model.invoke(messages_history)
+                messages_history.append(response)
 
-        print(f"\n✅ Architecture task completed!")
-        summary = response.content if response.content else "Task completed"
-        print(f"Summary: {summary[:150]}..." if len(summary) > 150 else f"Summary: {summary}")
+            print(f"\n✅ Architecture task completed!")
+            summary = response.content if hasattr(response, 'content') and response.content else "Task completed"
+            print(f"Summary: {summary[:150]}..." if len(summary) > 150 else f"Summary: {summary}")
+        except Exception as e:
+            print(f"\n⚠️ Warning: Error generating summary: {e}")
+            summary = "Task completed (summary generation failed)"
 
         updated_tasks = []
         for task in tasks:
@@ -179,11 +235,19 @@ status to completed and provide a concise summary.""")
             "implementing" if next_agent in {"frontend_developer", "backend_developer"} else "testing"
         )
 
+        # Determine manifest and guidelines paths from working directory
+        working_dir = state.get("working_directory", ".")
+        import os
+        manifest_path = os.path.join(working_dir, "PROJECT_MANIFEST.md")
+        guidelines_path = os.path.join(working_dir, ".agent-guidelines")
+
         return {
             "messages": messages_history,
             "tasks": updated_tasks,
             "next_agent": next_agent,
             "overall_status": status,
+            "project_manifest_path": manifest_path,
+            "guidelines_path": guidelines_path,
             "implementation_results": {
                 **state.get("implementation_results", {}),
                 "architecture": summary

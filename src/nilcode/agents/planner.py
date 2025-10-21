@@ -27,9 +27,17 @@ You have access to these agent types (ONLY use these, no others):
 - backend_developer: Handles Python, Node.js, APIs, databases, server logic
 - tester: Validates code, writes tests, checks quality
 
+CRITICAL PLANNING REQUIREMENTS:
+1. Identify all programming languages and frameworks mentioned or implied in the request
+2. ALWAYS assign software_architect as the FIRST task to establish project structure
+3. Ensure tasks follow a logical dependency order
+4. Break down complex features into specific, testable tasks
+
 IMPORTANT: You MUST respond with a JSON object in this exact format:
 
 {{
+  "languages": ["python", "javascript"],  // List all detected languages
+  "frameworks": ["fastapi", "react"],     // List all frameworks/libraries
   "tasks": [
     {{
       "content": "Task description in imperative form",
@@ -40,37 +48,39 @@ IMPORTANT: You MUST respond with a JSON object in this exact format:
   "summary": "Brief summary of the plan"
 }}
 
-Example for "Create a login page with authentication":
+Example for "Create a login page with authentication using React and FastAPI":
 
 {{
+  "languages": ["javascript", "python", "html", "css"],
+  "frameworks": ["react", "fastapi"],
   "tasks": [
     {{
-      "content": "Design project structure and required files",
+      "content": "Design project structure for React + FastAPI application with proper separation",
       "activeForm": "Designing project structure",
       "assignedTo": "software_architect"
     }},
     {{
-      "content": "Create login form UI with username and password fields",
+      "content": "Create login form UI component with username and password fields in React",
       "activeForm": "Creating login form UI",
       "assignedTo": "frontend_developer"
     }},
     {{
-      "content": "Style the login form with CSS",
+      "content": "Style the login form with CSS following modern design patterns",
       "activeForm": "Styling login form",
       "assignedTo": "frontend_developer"
     }},
     {{
-      "content": "Create authentication API endpoint",
+      "content": "Create FastAPI authentication endpoint with JWT token generation",
       "activeForm": "Creating authentication API",
       "assignedTo": "backend_developer"
     }},
     {{
-      "content": "Write tests for authentication",
+      "content": "Write unit tests for both frontend component and backend authentication",
       "activeForm": "Writing authentication tests",
       "assignedTo": "tester"
     }}
   ],
-  "summary": "Built a complete login system with frontend form, backend authentication, and tests"
+  "summary": "Built a complete login system with React frontend, FastAPI backend authentication, and comprehensive tests"
 }}
 
 Always respond with valid JSON only. No additional text before or after the JSON.
@@ -123,6 +133,8 @@ class PlannerAgent:
 
         created_tasks = []
         plan_summary = ""
+        detected_languages = []
+        detected_frameworks = []
 
         try:
             # Extract JSON from response (handle markdown code blocks)
@@ -136,6 +148,13 @@ class PlannerAgent:
 
             # Parse JSON
             plan_data = json.loads(content)
+
+            # Extract languages and frameworks
+            detected_languages = plan_data.get("languages", [])
+            detected_frameworks = plan_data.get("frameworks", [])
+
+            print(f"  🔍 Detected languages: {', '.join(detected_languages) if detected_languages else 'None specified'}")
+            print(f"  🔧 Detected frameworks: {', '.join(detected_frameworks) if detected_frameworks else 'None specified'}")
 
             # Extract tasks
             for task_def in plan_data.get("tasks", []):
@@ -176,12 +195,32 @@ class PlannerAgent:
 
         overall_status = status_mapping.get(next_agent, "planning")
 
+        # Categorize technologies
+        frontend_techs = []
+        backend_techs = []
+
+        for lang in detected_languages:
+            if lang.lower() in ["javascript", "typescript", "html", "css"]:
+                frontend_techs.append(lang.lower())
+            elif lang.lower() in ["python", "java", "go", "rust", "ruby", "php", "csharp", "c#"]:
+                backend_techs.append(lang.lower())
+
+        for framework in detected_frameworks:
+            fw_lower = framework.lower()
+            if fw_lower in ["react", "vue", "angular", "svelte", "nextjs", "nuxt"]:
+                frontend_techs.append(fw_lower)
+            elif fw_lower in ["fastapi", "flask", "django", "express", "nestjs", "spring", "rails"]:
+                backend_techs.append(fw_lower)
+
         return {
             "plan": plan_summary,
             "tasks": created_tasks,
             "messages": [response],
             "next_agent": next_agent,
             "overall_status": overall_status,
+            "detected_languages": detected_languages,
+            "frontend_tech": list(set(frontend_techs)),
+            "backend_tech": list(set(backend_techs)),
         }
 
 

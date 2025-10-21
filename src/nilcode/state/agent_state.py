@@ -46,6 +46,9 @@ class AgentState(TypedDict):
     # Code context
     frontend_tech: List[str]  # e.g., ["react", "typescript"]
     backend_tech: List[str]   # e.g., ["python", "fastapi"]
+    detected_languages: List[str]  # Auto-detected languages from requirements
+    project_manifest_path: str  # Path to PROJECT_MANIFEST.md created by architect
+    guidelines_path: str  # Path to .agent-guidelines/ directory
 
     # Agent routing
     next_agent: str  # Which agent should execute next
@@ -91,6 +94,9 @@ def create_initial_state(user_request: str, working_directory: str = ".") -> Age
         relevant_files=[],
         frontend_tech=[],
         backend_tech=[],
+        detected_languages=[],
+        project_manifest_path="",
+        guidelines_path="",
         next_agent="planner",
         plan="",
         implementation_results={},

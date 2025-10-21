@@ -226,7 +226,9 @@ def analyze_project_structure(search_path: str = ".") -> str:
                 
                 # Track directories
                 if file_path.parent != root:
-                    directories.add(str(file_path.parent.relative_to(root).parts[0]))
+                    rel_path = file_path.parent.relative_to(root)
+                    if rel_path.parts:  # Only access [0] if parts exist
+                        directories.add(str(rel_path.parts[0]))
         
         # Detect frameworks and tools
         frameworks = []

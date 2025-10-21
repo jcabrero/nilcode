@@ -15,40 +15,71 @@ from langchain_openai import ChatOpenAI
 from ..state.agent_state import AgentState
 from ..tools.file_operations import file_tools
 from ..tools.task_management import task_tools, set_task_storage
+from ..tools.validation_tools import validation_tools
 from .utils import determine_next_agent
 
 
 FRONTEND_SYSTEM_PROMPT = """You are a Frontend Developer Agent in a multi-agent software development system.
 
 Your role is to:
-1. Implement frontend features and components
-2. Write HTML, CSS, JavaScript, TypeScript, React, Vue code
-3. Create responsive and accessible UI components
-4. Follow frontend best practices
+1. Implement frontend features following the established project structure
+2. Write syntactically correct HTML, CSS, JavaScript, TypeScript, React, Vue code
+3. Create responsive, accessible, and well-tested UI components
+4. Respect architectural decisions made by the Software Architect
 
-You have access to file operation tools:
-- read_file: Read existing files
-- write_file: Create new files
-- edit_file: Modify existing files
-- list_files: List files in directories
-- create_directory: Create directories
+CRITICAL WORKFLOW - FOLLOW THIS ORDER:
 
-You also have task management tools to update task status.
+**PHASE 1: Understand Context (DO THIS FIRST!)**
+1. Read PROJECT_MANIFEST.md to understand:
+   - Technology stack and frameworks
+   - Directory structure and where to place files
+   - Architecture patterns to follow
+2. Read .agent-guidelines/coding-standards.md for:
+   - Naming conventions (camelCase vs snake_case)
+   - Code style requirements
+   - Import/export patterns
+3. Use list_files to see existing file structure
+4. Use read_file to examine similar existing files for patterns
 
-Best Practices:
-- Write clean, modular code
-- Use semantic HTML
-- Follow component-based architecture
-- Add comments for complex logic
-- Consider accessibility (a11y)
-- Use modern ES6+ JavaScript syntax
+**PHASE 2: Implement Code**
+1. Create/modify files following the established patterns
+2. Use proper naming conventions from guidelines
+3. Follow the directory structure from PROJECT_MANIFEST.md
+4. Include proper imports/exports
+5. Add JSDoc comments for functions and components
+6. Handle errors and edge cases
 
-When you complete a task:
-1. Use file tools to create/modify files
-2. Update task status to "completed"
-3. Provide clear summary of what you implemented
+**PHASE 3: Validate Your Work (MANDATORY!)**
+1. Use validate_javascript_syntax or validate_html_syntax on your code
+2. Use check_import_validity to verify imports
+3. If validation fails, FIX IT before marking complete
+4. Re-validate after fixes (max 2 attempts)
 
-Focus on creating functional, well-structured frontend code.
+**PHASE 4: Complete Task**
+1. Only mark task as "completed" if validation passes
+2. Provide comprehensive summary including files created/modified
+
+You have access to:
+- File tools: read_file, write_file, edit_file, list_files, create_directory
+- Validation tools: validate_javascript_syntax, validate_html_syntax, check_import_validity, validate_json_syntax
+- Task tools: update task status
+
+SYNTAX REQUIREMENTS:
+- JavaScript/TypeScript: Balanced braces {{}}, brackets [], parentheses ()
+- Proper function declarations: function name() {{}} or const name = () => {{}}
+- Valid import statements: import {{ X }} from 'module' or import X from 'module'
+- React: Proper JSX syntax with closing tags
+- HTML: Matching open and close tags
+
+Common mistakes to AVOID:
+- Unmatched braces, brackets, or parentheses
+- Typos in keywords (fucntion, retrun, improt)
+- Missing semicolons in critical places
+- Unclosed JSX tags
+- Incorrect import syntax
+- Missing 'from' in import statements
+
+If validation fails, you MUST fix syntax errors before proceeding!
 """
 
 
@@ -64,7 +95,7 @@ class FrontendDeveloperAgent:
         Args:
             model: Language model to use
         """
-        all_tools = file_tools + task_tools
+        all_tools = file_tools + task_tools + validation_tools
         self.model = model.bind_tools(all_tools)
         self.name = "frontend_developer"
 
@@ -113,16 +144,30 @@ class FrontendDeveloperAgent:
 
 Current plan: {plan}
 
+Frontend technologies: {frontend_tech}
+Project manifest location: {manifest_path}
+Guidelines location: {guidelines_path}
+
 Current task: {task_content}
 
-Please implement this task. Use file tools to create/modify files as needed.
-After implementation, update the task status to completed and provide a summary.""")
+IMPORTANT WORKFLOW:
+1. FIRST: Read {manifest_path} (if exists) to understand project structure
+2. SECOND: Read {guidelines_path}/coding-standards.md (if exists) for conventions
+3. THIRD: Use list_files to see existing structure
+4. FOURTH: Implement your code following the established patterns
+5. FIFTH: Validate syntax using validation tools
+6. SIXTH: Only if validation passes, update task status to "completed"
+
+Begin by reading the project documentation!""")
         ])
 
         # Format the prompt
         messages = prompt.format_messages(
             user_request=state["user_request"],
             plan=state.get("plan", ""),
+            frontend_tech=", ".join(state.get("frontend_tech", [])) or "Not specified",
+            manifest_path=state.get("project_manifest_path", "PROJECT_MANIFEST.md"),
+            guidelines_path=state.get("guidelines_path", ".agent-guidelines"),
             task_content=current_task["content"]
         )
 
@@ -131,47 +176,70 @@ After implementation, update the task status to completed and provide a summary.
         messages_history = list(messages) + [response]
 
         # Execute tool calls
-        max_iterations = 15
+        max_iterations = 20  # Increased for validation retries
         iteration = 0
-        all_tools = file_tools + task_tools
+        all_tools = file_tools + task_tools + validation_tools
         tool_outputs = []
 
         while response.tool_calls and iteration < max_iterations:
             iteration += 1
 
             for tool_call in response.tool_calls:
-                # Find the tool
-                tool = next((t for t in all_tools if t.name == tool_call["name"]), None)
+                try:
+                    # Handle both dict and object-style tool calls
+                    if isinstance(tool_call, dict):
+                        tool_name = tool_call.get("name")
+                        tool_args = tool_call.get("args", {})
+                        tool_id = tool_call.get("id")
+                    else:
+                        # Handle as object with attributes
+                        tool_name = getattr(tool_call, "name", None)
+                        tool_args = getattr(tool_call, "args", {})
+                        tool_id = getattr(tool_call, "id", None)
 
-                if tool:
-                    print(f"    🔧 Using tool: {tool.name}: {tool_call['args']}")
-                    result = tool.invoke(tool_call["args"])
-                    tool_outputs.append(result)
+                    if not tool_name:
+                        print(f"    ⚠️ Skipping invalid tool call")
+                        continue
 
-                    # Add tool response to messages
-                    from langchain_core.messages import ToolMessage
-                    messages_history.append(ToolMessage(
-                        content=str(result),
-                        tool_call_id=tool_call["id"]
-                    ))
+                    # Find the tool
+                    tool = next((t for t in all_tools if t.name == tool_name), None)
+
+                    if tool:
+                        print(f"    🔧 Using tool: {tool.name}: {tool_args}")
+                        result = tool.invoke(tool_args)
+                        tool_outputs.append(result)
+
+                        # Add tool response to messages
+                        from langchain_core.messages import ToolMessage
+                        messages_history.append(ToolMessage(
+                            content=str(result),
+                            tool_call_id=tool_id if tool_id else str(iteration)
+                        ))
+                except Exception as e:
+                    print(f"    ⚠️ Error processing tool call: {e}")
+                    continue
 
             # Get next response
             response = self.model.invoke(messages_history)
             messages_history.append(response)
 
         # Generate final summary after all tools are done
-        if not response.content or len(response.content.strip()) < 50:
-            print("    📝 Generating final summary...")
-            from langchain_core.messages import HumanMessage
-            messages_history.append(HumanMessage(
-                content="Please provide a comprehensive summary of what you just implemented, including what files were created/modified and what functionality was added."
-            ))
-            response = self.model.invoke(messages_history)
-            messages_history.append(response)
+        try:
+            if not response.content or len(response.content.strip()) < 50:
+                print("    📝 Generating final summary...")
+                from langchain_core.messages import HumanMessage
+                messages_history.append(HumanMessage(
+                    content="Please provide a comprehensive summary of what you just implemented, including what files were created/modified and what functionality was added."
+                ))
+                response = self.model.invoke(messages_history)
+                messages_history.append(response)
 
-        print(f"\n✅ Frontend task completed!")
-        summary = response.content if response.content else "Task completed"
-        print(f"Summary: {summary[:150]}..." if len(summary) > 150 else f"Summary: {summary}")
+            print(f"\n✅ Frontend task completed!")
+            summary = response.content if hasattr(response, 'content') and response.content else "Task completed"
+            print(f"Summary: {summary[:150]}..." if len(summary) > 150 else f"Summary: {summary}")
+        except Exception as e:
+            print(f"\n⚠️ Warning: Error generating summary: {e}")
+            summary = "Task completed (summary generation failed)"
 
         # Mark the current task as completed
         updated_tasks = []

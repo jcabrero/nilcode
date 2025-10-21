@@ -4,7 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a multi-agent LangChain/LangGraph system that coordinates specialized AI agents to handle software development tasks. The system mimics Claude Code and GitHub Codex functionality by breaking down requests into tasks, creating architecture, implementing code, and validating results.
+This is a **production-ready** multi-agent LangChain/LangGraph system that coordinates specialized AI agents to handle software development tasks. The system mimics Claude Code and GitHub Codex functionality by breaking down requests into tasks, creating architecture, implementing code, and validating results.
+
+**Recent Major Upgrades** (see IMPROVEMENTS.md for details):
+- ✅ Comprehensive syntax validation to eliminate code errors
+- ✅ Project manifest system for architectural consistency
+- ✅ Language-agnostic design supporting any programming language
+- ✅ Enhanced agent coordination through shared documentation
+- ✅ Multi-stage validation with self-correction
 
 ## Commands
 
@@ -59,6 +66,11 @@ All agents share a single `AgentState` object defined in `src/nilcode/state/agen
 - **project_files**: Dictionary of file paths to content
 - **next_agent**: Routing decision for which agent executes next
 - **overall_status**: Workflow status (planning/architecting/implementing/testing/completed/failed)
+- **detected_languages**: Languages identified by planner (NEW)
+- **frontend_tech**: Frontend frameworks/libraries (NEW)
+- **backend_tech**: Backend frameworks/libraries (NEW)
+- **project_manifest_path**: Path to PROJECT_MANIFEST.md (NEW)
+- **guidelines_path**: Path to .agent-guidelines/ directory (NEW)
 
 The state is passed through the workflow and updated by each agent.
 
@@ -75,13 +87,24 @@ Agents have access to tools defined in `src/nilcode/tools/`:
 **Code Analysis** (`code_analysis.py`):
 - analyze_python_syntax, count_functions, check_imports, find_todos_in_code, check_code_complexity, validate_code_style
 
+**Validation Tools** (`validation_tools.py`) - NEW:
+- validate_python_syntax, validate_python_file, validate_javascript_syntax, validate_html_syntax, validate_json_syntax, check_import_validity, auto_detect_language
+
 ### Workflow Execution
 
-1. User request → Planner creates tasks
-2. Software Architect sets up structure (if needed)
-3. Developer agents implement code (Frontend/Backend)
-4. Tester validates and writes tests
-5. Orchestrator aggregates results
+**Enhanced workflow with validation:**
+
+1. **Planner** → Analyzes request, detects languages/frameworks, creates tasks
+2. **Software Architect** → Creates PROJECT_MANIFEST.md and .agent-guidelines/, sets up structure
+3. **Developer agents** → Read manifest, implement code following guidelines, validate syntax
+4. **Tester** → Validates ALL files, checks syntax, writes tests
+5. **Orchestrator** → Aggregates results
+
+**Key improvements:**
+- Planner detects tech stack and passes to all agents
+- Architect creates documentation that all agents must read
+- Developers validate code before marking tasks complete
+- Tester performs comprehensive syntax validation on all files
 
 Agents use the `next_agent` field in state to route to the next agent. The workflow compiles these routing decisions into conditional edges in the LangGraph.
 
@@ -121,3 +144,48 @@ The project uses `src/nilcode/` as the package root:
 
 ## Python Version
 Requires Python 3.14+
+
+## Recent System Improvements
+
+### Syntax Validation System
+All developer agents now:
+1. Read PROJECT_MANIFEST.md and .agent-guidelines/ before coding
+2. Implement code following established patterns
+3. **Validate syntax using validation tools** (MANDATORY)
+4. Fix any errors found (up to 2 retries)
+5. Only mark tasks complete if validation passes
+
+### Language Detection & Support
+The planner automatically detects:
+- **Languages**: Python, JavaScript, TypeScript, HTML, CSS, Java, Go, etc.
+- **Frameworks**: React, Vue, FastAPI, Flask, Django, Express, etc.
+- **Categorization**: Automatically separates frontend vs backend tech
+
+Supported validation:
+- Python: AST-based syntax validation
+- JavaScript/TypeScript: Brace/bracket matching, import validation
+- HTML: Tag matching validation
+- JSON: Format validation
+
+### Project Manifest System
+Software architect creates foundational documentation:
+- **PROJECT_MANIFEST.md**: Tech stack, directory structure, naming conventions
+- **.agent-guidelines/coding-standards.md**: Language-specific standards
+- **.agent-guidelines/file-structure.md**: Where files should go
+- **.agent-guidelines/naming-conventions.md**: Naming rules
+
+All developer agents read these before implementing code.
+
+### Enhanced Testing
+Tester agent now:
+- Validates syntax of EVERY code file
+- Uses appropriate validator per file type (.py → Python, .js → JavaScript, etc.)
+- Checks import validity
+- Reports syntax errors with file names and line numbers
+- Writes comprehensive unit tests
+
+## Documentation
+
+- **IMPROVEMENTS.md**: Detailed technical documentation of all improvements
+- **UPGRADE_SUMMARY.md**: Quick reference guide to changes
+- **CLAUDE.md**: This file - project overview and guidance

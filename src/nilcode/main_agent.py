@@ -230,6 +230,24 @@ def main():
 
     # Check for command-line arguments
     if len(sys.argv) > 1:
+        # Check for version flag
+        if sys.argv[1] in ['--version', '-v', 'version']:
+            try:
+                from .version import print_version_info
+            except ImportError:
+                from version import print_version_info
+            print_version_info()
+            return 0
+
+        # Check for changelog flag
+        if sys.argv[1] in ['--changelog', 'changelog']:
+            try:
+                from .version import print_changelog
+            except ImportError:
+                from version import print_changelog
+            print_changelog()
+            return 0
+
         # Run single command mode
         command = " ".join(sys.argv[1:])
         return run_single_command(agent_system, command)
