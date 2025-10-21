@@ -98,12 +98,57 @@ class OrchestratorAgent:
         """
         print("\n🎯 Orchestrator Agent: Aggregating results and creating summary...")
 
+        # Extract implementation results
+        impl_results = state.get("implementation_results", {})
+        arch_impl = impl_results.get("architecture", "")
+        frontend_impl = impl_results.get("frontend", "")
+        backend_impl = impl_results.get("backend", "")
+        
+        # Debug: Show what we received
+        print(f"  📊 State received:")
+        print(f"     - Architecture result: {len(arch_impl)} chars")
+        print(f"     - Frontend result: {len(frontend_impl)} chars")
+        print(f"     - Backend result: {len(backend_impl)} chars")
+        print(f"     - Project files: {len(state.get('project_files', {}))} files")
+        print(f"     - Tasks: {len(state.get('tasks', []))} tasks")
+        
+        # Fallback: If implementation_results are empty, build summary from tasks
+        if not arch_impl and not frontend_impl and not backend_impl:
+            print("  ⚠️  Implementation results empty, building from task results...")
+            tasks = state.get("tasks", [])
+            for task in tasks:
+                if task.get("status") == "completed":
+                    result = task.get("result", "")
+                    agent = task.get("assignedTo", "")
+                    
+                    if agent == "software_architect" and not arch_impl:
+                        arch_impl = result
+                    elif agent == "frontend_developer" and not frontend_impl:
+                        frontend_impl += result + "\n\n"
+                    elif agent == "backend_developer" and not backend_impl:
+                        backend_impl += result + "\n\n"
+        
+        # Build file list
+        project_files = state.get("project_files", {})
+        files_summary = "\n".join([f"- {path}" for path in sorted(project_files.keys())])
+        
+        # Build completed tasks summary
+        tasks = state.get("tasks", [])
+        completed_tasks = [t for t in tasks if t.get("status") == "completed"]
+        tasks_summary = f"Completed {len(completed_tasks)}/{len(tasks)} tasks:\n"
+        tasks_summary += "\n".join([f"- {t.get('content', 'Unknown')}" for t in completed_tasks])
+
         # Create the prompt
         prompt = ChatPromptTemplate.from_messages([
             ("system", ORCHESTRATOR_SYSTEM_PROMPT),
             ("human", """User request: {user_request}
 
 Plan created: {plan}
+
+Tasks: {tasks_summary}
+
+Project files created:
+{files_summary}
 
 Architectural setup: {architecture_impl}
 
@@ -115,7 +160,7 @@ Test results: {test_results}
 
 Please provide a comprehensive summary of what was accomplished, including:
 1. Overview of completed work
-2. Files created/modified
+2. Files created/modified (use the list above)
 3. Test and validation results
 4. Any recommendations or next steps""")
         ])
@@ -124,9 +169,11 @@ Please provide a comprehensive summary of what was accomplished, including:
         messages = prompt.format_messages(
             user_request=state["user_request"],
             plan=state.get("plan", "No plan created"),
-            architecture_impl=state.get("implementation_results", {}).get("architecture", "No architecture work"),
-            frontend_impl=state.get("implementation_results", {}).get("frontend", "No frontend work"),
-            backend_impl=state.get("implementation_results", {}).get("backend", "No backend work"),
+            tasks_summary=tasks_summary,
+            files_summary=files_summary if files_summary else "No files created yet",
+            architecture_impl=arch_impl if arch_impl else "No architecture work details available",
+            frontend_impl=frontend_impl if frontend_impl else "No frontend work details available",
+            backend_impl=backend_impl if backend_impl else "No backend work details available",
             test_results=state.get("test_results", {}).get("summary", "No test results")
         )
 
@@ -160,7 +207,6 @@ def create_orchestrator_agent(api_key: str, base_url: str = None) -> Orchestrato
     model_kwargs = {
         "model": "openai/gpt-oss-20b",
         "api_key": api_key,
-        "temperature": 0.3
     }
 
     if base_url:

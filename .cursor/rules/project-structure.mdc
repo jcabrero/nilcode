@@ -1,0 +1,65 @@
+---
+alwaysApply: true
+---
+# NilCode Multi-Agent System - Project Structure
+
+## Overview
+This is a multi-agent LangChain/LangGraph system that coordinates specialized AI agents to handle software development tasks. The system breaks down requests into tasks, creates architecture, implements code, and validates results.
+
+## Package Structure
+- **Package name**: `nilcode`
+- **Package root**: `src/nilcode/`
+- **Python version**: 3.14+
+- **Package manager**: `uv`
+
+All imports must be relative to the `nilcode` package:
+```python
+from nilcode.state.agent_state import AgentState
+from nilcode.tools.file_operations import write_file
+from nilcode.agents.utils import determine_next_agent
+```
+
+## Key Modules
+
+### State Management
+State is defined in [agent_state.py](mdc:src/nilcode/state/agent_state.py) with the `AgentState` TypedDict containing:
+- **messages**: Conversation history (Annotated with `add_messages`)
+- **tasks**: List of Task objects with id/content/status/assignedTo/result
+- **project_files**: Dict mapping file paths to content
+- **next_agent**: Routing decision for workflow
+- **overall_status**: Workflow status (planning/architecting/implementing/testing/completed/failed)
+
+### The 6 Specialized Agents
+1. **Planner** ([planner.py](mdc:src/nilcode/agents/planner.py)) - Analyzes requests, creates JSON task breakdowns
+2. **Software Architect** ([software_architect.py](mdc:src/nilcode/agents/software_architect.py)) - Repository structure and scaffolding
+3. **Frontend Developer** ([frontend_developer.py](mdc:src/nilcode/agents/frontend_developer.py)) - HTML/CSS/JS/TS/React/Vue components
+4. **Backend Developer** ([backend_developer.py](mdc:src/nilcode/agents/backend_developer.py)) - Python/Node.js services and APIs
+5. **Tester & Validator** ([tester.py](mdc:src/nilcode/agents/tester.py)) - Code validation and unit tests
+6. **Orchestrator** ([orchestrator.py](mdc:src/nilcode/agents/orchestrator.py)) - Workflow coordination and final summaries
+
+### Agent Tools
+Located in `src/nilcode/tools/`:
+- **File Operations** ([file_operations.py](mdc:src/nilcode/tools/file_operations.py)): read_file, write_file, edit_file, list_files, create_directory
+- **Task Management** ([task_management.py](mdc:src/nilcode/tools/task_management.py)): create_task, update_task_status, update_task_result, get_all_tasks
+- **Code Analysis** ([code_analysis.py](mdc:src/nilcode/tools/code_analysis.py)): analyze_python_syntax, count_functions, check_imports, validate_code_style
+
+## Commands
+```bash
+# Install dependencies
+uv sync
+
+# Run the system
+uv run nilcode
+# or
+uv run python src/nilcode/main_agent.py
+
+# Run tests
+uv run python test_planner.py
+```
+
+## Key Patterns
+- All agents share the same `AgentState` object
+- Agents return `Dict[str, Any]` with updates to merge into state
+- Use `next_agent` field to route between agents
+- Task status: "pending" → "in_progress" → "completed"
+- Agent names: "planner", "software_architect", "frontend_developer", "backend_developer", "tester", "orchestrator"

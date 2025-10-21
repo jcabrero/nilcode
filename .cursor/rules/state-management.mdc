@@ -1,0 +1,174 @@
+---
+globs: src/nilcode/state/*.py
+---
+# State Management Guidelines
+
+## AgentState Structure
+The `AgentState` TypedDict is the central data structure shared by all agents. It is defined in [agent_state.py](mdc:src/nilcode/state/agent_state.py).
+
+### Core Principles
+1. **Immutability**: State is never modified in place - agents return updates as dictionaries
+2. **Type Safety**: Use TypedDict with proper type hints for all fields
+3. **Message Handling**: Use `Annotated[List[BaseMessage], add_messages]` for message accumulation
+4. **Literals**: Use Literal types for constrained string fields (status, agent names)
+
+## Required Fields
+
+### Conversation & Request
+```python
+messages: Annotated[List[BaseMessage], add_messages]  # Auto-accumulated
+user_request: str  # Original user query
+```
+
+### Task Management
+```python
+tasks: List[Task]  # Array of Task objects
+current_task_id: str  # ID of task being worked on
+```
+
+### Project Context
+```python
+project_files: Dict[str, str]  # file_path -> content mapping
+modified_files: List[str]  # Track file changes
+frontend_tech: List[str]  # e.g., ["react", "typescript"]
+backend_tech: List[str]  # e.g., ["python", "fastapi"]
+```
+
+### Agent Routing
+```python
+next_agent: str  # Which agent executes next
+# Valid values: "planner", "software_architect", "frontend_developer", 
+#               "backend_developer", "tester", "orchestrator"
+```
+
+### Results & Status
+```python
+plan: str  # Plan created by planner
+implementation_results: Dict[str, Any]  # Developer agent results
+test_results: Dict[str, Any]  # Tester results
+overall_status: Literal["planning", "architecting", "implementing", "testing", "completed", "failed"]
+error: str  # Error messages if any
+```
+
+## Task Structure
+The `Task` TypedDict defines individual task objects:
+
+```python
+class Task(TypedDict):
+    id: str  # Unique identifier (usually UUID)
+    content: str  # Task description (imperative: "Create login form")
+    status: Literal["pending", "in_progress", "completed"]
+    activeForm: str  # Present continuous: "Creating login form"
+    assignedTo: str  # Agent name handling this task
+    result: str  # Output/result from task completion
+```
+
+## State Creation
+Always use the factory function to create initial state:
+
+```python
+from nilcode.state.agent_state import create_initial_state
+
+state = create_initial_state(user_request="Build a todo app")
+```
+
+This ensures all required fields are initialized with proper defaults.
+
+## State Updates in Agents
+Agents should return partial state updates as dictionaries:
+
+```python
+def __call__(self, state: AgentState) -> Dict[str, Any]:
+    # Read from state
+    tasks = state["tasks"]
+    user_request = state["user_request"]
+    
+    # Perform work...
+    
+    # Return only changed fields
+    return {
+        "messages": [response],
+        "next_agent": "frontend_developer",
+        "overall_status": "implementing",
+        "modified_files": ["src/index.html"]
+    }
+```
+
+## Common Patterns
+
+### Updating Task Status
+```python
+# Find and update a specific task
+updated_tasks = []
+for task in state["tasks"]:
+    if task["id"] == task_id:
+        updated_task = task.copy()
+        updated_task["status"] = "completed"
+        updated_task["result"] = "Login form created"
+        updated_tasks.append(updated_task)
+    else:
+        updated_tasks.append(task)
+
+return {"tasks": updated_tasks}
+```
+
+### Adding Modified Files
+```python
+modified = state.get("modified_files", [])
+modified.append("src/components/Login.tsx")
+return {"modified_files": modified}
+```
+
+### Storing Project Files
+```python
+files = state.get("project_files", {})
+files["src/app.py"] = file_content
+return {"project_files": files}
+```
+
+## Status Transitions
+
+### Overall Status Flow
+```
+planning → architecting → implementing → testing → completed
+                                                  ↓
+                                                failed
+```
+
+### Task Status Flow
+```
+pending → in_progress → completed
+```
+
+## Type Safety Rules
+- Always use proper type hints matching the AgentState definition
+- Import types: `from typing import TypedDict, List, Dict, Any, Literal`
+- Use Literal for constrained strings to enable type checking
+- Never use `Any` when a more specific type is available
+
+## Message Handling
+The `messages` field uses LangGraph's `add_messages` reducer:
+- Automatically accumulates messages across agent calls
+- Don't manually concatenate - just return new messages in a list
+- Messages are BaseMessage objects from langchain_core
+
+```python
+from langchain_core.messages import AIMessage, HumanMessage
+
+return {
+    "messages": [AIMessage(content="Task completed")]
+}
+```
+
+## Avoid These Common Mistakes
+❌ Modifying state in place: `state["tasks"].append(new_task)`
+✅ Return new values: `return {"tasks": state["tasks"] + [new_task]}`
+
+❌ Missing required fields in return dict
+✅ Return only fields that changed
+
+❌ Using invalid agent names in `next_agent`
+✅ Use exact names: "planner", "software_architect", etc.
+
+❌ Returning full state object
+✅ Return partial dict with updates only

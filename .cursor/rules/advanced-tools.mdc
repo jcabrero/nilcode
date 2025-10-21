@@ -1,0 +1,441 @@
+---
+globs: src/nilcode/tools/git_tools.py,src/nilcode/tools/terminal_tools.py,src/nilcode/tools/codebase_tools.py
+---
+# Advanced Tools Guidelines
+
+## Git Tools ([git_tools.py](mdc:src/nilcode/tools/git_tools.py))
+
+### Purpose
+Git tools help agents understand version control state and file history without modifying the repository.
+
+### Available Tools
+
+#### git_status
+```python
+from nilcode.tools.git_tools import git_status
+
+# Get current repository status
+status = git_status()  # Uses current directory
+status = git_status(repo_path="/path/to/repo")
+
+# Returns formatted status showing:
+# - Staged files
+# - Modified files
+# - Untracked files
+```
+
+#### git_diff
+```python
+from nilcode.tools.git_tools import git_diff
+
+# Show all changes
+diff = git_diff()
+
+# Show changes for specific file
+diff = git_diff(file_path="src/app.py")
+```
+
+#### git_log
+```python
+from nilcode.tools.git_tools import git_log
+
+# Show recent commits (default: 10)
+log = git_log()
+
+# Show specific number of commits
+log = git_log(max_count=20)
+```
+
+#### git_branch_info
+```python
+from nilcode.tools.git_tools import git_branch_info
+
+# Get current branch and list all branches
+branches = git_branch_info()
+```
+
+#### git_show_file
+```python
+from nilcode.tools.git_tools import git_show_file
+
+# Show file at specific commit
+content = git_show_file("src/app.py", commit="HEAD")
+content = git_show_file("src/app.py", commit="abc123")
+```
+
+#### git_file_history
+```python
+from nilcode.tools.git_tools import git_file_history
+
+# Show commit history for a file
+history = git_file_history("src/app.py", max_count=5)
+```
+
+#### git_check_conflicts
+```python
+from nilcode.tools.git_tools import git_check_conflicts
+
+# Check for merge conflicts
+conflicts = git_check_conflicts()
+```
+
+### Usage Guidelines
+
+#### When to Use Git Tools
+- Understanding what files changed recently
+- Checking file history before modifying
+- Understanding branch structure
+- Detecting merge conflicts
+- Reading previous versions of files
+
+#### When NOT to Use
+- **Making commits** - Agents should NEVER commit
+- **Pushing changes** - Agents should NEVER push
+- **Creating branches** - Agents should NEVER create branches
+- **Merging** - Agents should NEVER merge
+- **Rebasing** - Agents should NEVER rebase
+
+#### Best Practices
+```python
+# Good: Check status before analyzing
+status = git_status()
+if "modified" in status:
+    # Understand what's already changed
+    diff = git_diff()
+
+# Good: Check file history
+history = git_file_history("src/config.py")
+# Use history to understand evolution
+
+# Bad: Don't try to modify git state
+# NEVER do: git_commit(), git_push(), etc.
+```
+
+## Terminal Tools ([terminal_tools.py](mdc:src/nilcode/tools/terminal_tools.py))
+
+### Purpose
+Terminal tools allow agents to execute commands, run tests, and install packages.
+
+### Available Tools
+
+#### run_command
+```python
+from nilcode.tools.terminal_tools import run_command
+
+# Execute shell command
+output = run_command("ls -la", working_dir=".")
+output = run_command("npm install", timeout=120)
+```
+
+**Security Notes:**
+- Dangerous commands are blocked (rm -rf /, dd, mkfs, fork bombs)
+- Commands run in specified working directory only
+- Timeout prevents infinite loops
+- Output is captured and returned
+
+#### run_python_script
+```python
+from nilcode.tools.terminal_tools import run_python_script
+
+# Run Python script
+output = run_python_script("test_script.py")
+output = run_python_script("script.py", args="--verbose --output results.txt")
+```
+
+#### install_package
+```python
+from nilcode.tools.terminal_tools import install_package
+
+# Auto-detect package manager
+result = install_package("requests")  # Uses pip, npm, or uv
+
+# Specify package manager
+result = install_package("fastapi", package_manager="pip")
+result = install_package("react", package_manager="npm")
+result = install_package("langchain", package_manager="uv")
+```
+
+**Package Manager Detection:**
+- `package.json` exists → npm
+- `pyproject.toml` exists + uv available → uv
+- `requirements.txt` exists → pip
+
+#### run_tests
+```python
+from nilcode.tools.terminal_tools import run_tests
+
+# Auto-detect test framework
+result = run_tests()  # Runs tests in tests/ directory
+
+# Specify test path
+result = run_tests(test_path="tests/unit/")
+
+# Specify framework
+result = run_tests(test_path="tests", framework="pytest")
+result = run_tests(framework="jest")
+```
+
+#### run_linter
+```python
+from nilcode.tools.terminal_tools import run_linter
+
+# Auto-detect linter
+result = run_linter(".")
+
+# Lint specific file
+result = run_linter("src/app.py")  # Uses flake8 for .py
+
+# Specify linter
+result = run_linter("src/", linter="pylint")
+result = run_linter("frontend/", linter="eslint")
+```
+
+#### check_environment
+```python
+from nilcode.tools.terminal_tools import check_environment
+
+# Get environment information
+env_info = check_environment()
+
+# Returns:
+# - Python version and location
+# - Available tools (git, node, npm, pytest, pip, uv)
+# - Working directory
+```
+
+### Usage Guidelines
+
+#### When to Use Terminal Tools
+- Running tests after code generation
+- Installing dependencies
+- Checking linting
+- Validating code execution
+- Gathering environment info
+
+#### Safety Considerations
+```python
+# Good: Safe commands
+run_command("pytest tests/")
+run_command("npm test")
+run_command("ls -la")
+
+# Bad: Dangerous commands (will be rejected)
+run_command("rm -rf /")  # ❌ BLOCKED
+run_command("dd if=/dev/zero of=/dev/sda")  # ❌ BLOCKED
+```
+
+#### Timeouts
+```python
+# Use appropriate timeouts
+run_command("quick_command", timeout=10)  # Short command
+run_command("npm install", timeout=120)   # Installation
+run_tests(timeout=60)                      # Tests
+```
+
+#### Error Handling
+```python
+result = run_command("pytest tests/")
+
+if "exit code: 0" in result.lower():
+    # Command succeeded
+    print("Tests passed!")
+else:
+    # Command failed
+    print("Tests failed:")
+    print(result)
+```
+
+## Codebase Tools ([codebase_tools.py](mdc:src/nilcode/tools/codebase_tools.py))
+
+If this file exists in your project, it should contain tools for:
+
+### Typical Codebase Tools
+
+#### search_codebase
+```python
+@tool
+def search_codebase(query: str, file_pattern: str = "*.py") -> str:
+    """
+    Search for text patterns in codebase files.
+    
+    Args:
+        query: Text or regex pattern to search for
+        file_pattern: Glob pattern for files to search (default: *.py)
+    
+    Returns:
+        List of files and matching lines
+    """
+```
+
+#### find_files
+```python
+@tool
+def find_files(pattern: str, directory: str = ".") -> str:
+    """
+    Find files matching a pattern.
+    
+    Args:
+        pattern: Glob pattern (e.g., "*.py", "test_*.js")
+        directory: Directory to search in
+    
+    Returns:
+        List of matching file paths
+    """
+```
+
+#### find_definition
+```python
+@tool
+def find_definition(symbol: str, directory: str = ".") -> str:
+    """
+    Find where a function, class, or variable is defined.
+    
+    Args:
+        symbol: Name of the symbol to find
+        directory: Directory to search in
+    
+    Returns:
+        File path and line number where symbol is defined
+    """
+```
+
+#### find_usages
+```python
+@tool
+def find_usages(symbol: str, directory: str = ".") -> str:
+    """
+    Find all usages of a function, class, or variable.
+    
+    Args:
+        symbol: Name of the symbol to find usages of
+        directory: Directory to search in
+    
+    Returns:
+        List of files and lines where symbol is used
+    """
+```
+
+## Tool Combination Patterns
+
+### Comprehensive File Analysis
+```python
+# Context Gatherer pattern
+def analyze_file_comprehensively(file_path: str):
+    """Analyze a file using multiple tools."""
+    # Read content
+    content = read_file(file_path)
+    
+    # Check syntax
+    syntax = analyze_python_syntax(file_path)
+    
+    # Check imports
+    imports = check_imports(file_path)
+    
+    # Check git history
+    history = git_file_history(file_path)
+    
+    # Check for TODOs
+    todos = find_todos_in_code(file_path)
+    
+    return {
+        "content": content,
+        "syntax": syntax,
+        "imports": imports,
+        "history": history,
+        "todos": todos
+    }
+```
+
+### Code Validation Pipeline
+```python
+# Tester pattern
+def validate_code_file(file_path: str):
+    """Validate code file thoroughly."""
+    results = []
+    
+    # 1. Syntax check
+    syntax = analyze_python_syntax(file_path)
+    results.append(("syntax", syntax))
+    
+    # 2. Style check
+    style = validate_code_style(file_path)
+    results.append(("style", style))
+    
+    # 3. Lint check
+    lint = run_linter(file_path)
+    results.append(("lint", lint))
+    
+    # 4. Run tests
+    test_file = f"tests/test_{Path(file_path).stem}.py"
+    if Path(test_file).exists():
+        tests = run_tests(test_file)
+        results.append(("tests", tests))
+    
+    return results
+```
+
+### Dependency Management
+```python
+# Software Architect pattern
+def setup_project_dependencies(tech_stack: List[str]):
+    """Install all required dependencies."""
+    # Check environment
+    env = check_environment()
+    
+    # Install based on tech stack
+    for tech in tech_stack:
+        if tech == "fastapi":
+            install_package("fastapi")
+            install_package("uvicorn")
+        elif tech == "react":
+            run_command("npm init -y")
+            install_package("react", package_manager="npm")
+            install_package("react-dom", package_manager="npm")
+    
+    # Verify installations
+    return check_environment()
+```
+
+## Tool Usage in Agents
+
+### Binding Tools to Agents
+```python
+# Context Gatherer
+from nilcode.tools.file_operations import list_files, read_file
+from nilcode.tools.code_analysis import analyze_python_syntax, check_imports
+from nilcode.tools.git_tools import git_status, git_log
+from nilcode.tools.codebase_tools import search_codebase, find_files
+
+context_tools = [
+    list_files, read_file,
+    analyze_python_syntax, check_imports,
+    git_status, git_log,
+    search_codebase, find_files
+]
+
+# Tester
+from nilcode.tools.code_analysis import *
+from nilcode.tools.terminal_tools import run_tests, run_linter
+
+tester_tools = [
+    analyze_python_syntax, validate_code_style,
+    run_tests, run_linter, check_environment
+]
+
+# Error Recovery
+from nilcode.tools.code_analysis import analyze_python_syntax, check_imports
+from nilcode.tools.file_operations import read_file, edit_file
+from nilcode.tools.terminal_tools import run_tests
+
+error_recovery_tools = [
+    analyze_python_syntax, check_imports,
+    read_file, edit_file,
+    run_tests
+]
+```
+
+### Tool Selection Principles
+1. **Minimal set** - Only bind tools the agent actually needs
+2. **Relevant** - Tools should match agent's responsibilities
+3. **Safe** - No destructive operations (especially git writes)
+4. **Focused** - Don't overwhelm LLM with too many tools

@@ -159,14 +159,25 @@ After implementation, update the task status to completed and provide a summary.
             response = self.model.invoke(messages_history)
             messages_history.append(response)
 
+        # Generate final summary after all tools are done
+        if not response.content or len(response.content.strip()) < 50:
+            print("    📝 Generating final summary...")
+            from langchain_core.messages import HumanMessage
+            messages_history.append(HumanMessage(
+                content="Please provide a comprehensive summary of what you just implemented, including what files were created/modified and what functionality was added."
+            ))
+            response = self.model.invoke(messages_history)
+            messages_history.append(response)
+
         print(f"\n✅ Frontend task completed!")
-        print(f"Summary: {response.content[:150]}...")
+        summary = response.content if response.content else "Task completed"
+        print(f"Summary: {summary[:150]}..." if len(summary) > 150 else f"Summary: {summary}")
 
         # Mark the current task as completed
         updated_tasks = []
         for task in tasks:
             if task["id"] == current_task["id"]:
-                task = {**task, "status": "completed", "result": response.content}
+                task = {**task, "status": "completed", "result": summary}
             updated_tasks.append(task)
 
         set_task_storage(updated_tasks)
@@ -184,7 +195,7 @@ After implementation, update the task status to completed and provide a summary.
             "overall_status": status,
             "implementation_results": {
                 **state.get("implementation_results", {}),
-                "frontend": response.content
+                "frontend": summary
             }
         }
 
@@ -203,7 +214,6 @@ def create_frontend_developer_agent(api_key: str, base_url: str = None) -> Front
     model_kwargs = {
         "model": "openai/gpt-oss-20b",
         "api_key": api_key,
-        "temperature": 0.2
     }
 
     if base_url:

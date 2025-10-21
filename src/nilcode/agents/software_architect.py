@@ -152,13 +152,24 @@ status to completed and provide a concise summary.""")
             response = self.model.invoke(messages_history)
             messages_history.append(response)
 
+        # Generate final summary after all tools are done
+        if not response.content or len(response.content.strip()) < 50:
+            print("    📝 Generating final summary...")
+            from langchain_core.messages import HumanMessage
+            messages_history.append(HumanMessage(
+                content="Please provide a comprehensive summary of what you just implemented, including what files/directories were created and what structure was set up."
+            ))
+            response = self.model.invoke(messages_history)
+            messages_history.append(response)
+
         print(f"\n✅ Architecture task completed!")
-        print(f"Summary: {response.content[:150]}...")
+        summary = response.content if response.content else "Task completed"
+        print(f"Summary: {summary[:150]}..." if len(summary) > 150 else f"Summary: {summary}")
 
         updated_tasks = []
         for task in tasks:
             if task["id"] == current_task["id"]:
-                task = {**task, "status": "completed", "result": response.content}
+                task = {**task, "status": "completed", "result": summary}
             updated_tasks.append(task)
 
         set_task_storage(updated_tasks)
@@ -175,7 +186,7 @@ status to completed and provide a concise summary.""")
             "overall_status": status,
             "implementation_results": {
                 **state.get("implementation_results", {}),
-                "architecture": response.content
+                "architecture": summary
             },
         }
 
@@ -194,7 +205,6 @@ def create_software_architect_agent(api_key: str, base_url: str = None) -> Softw
     model_kwargs: Dict[str, Any] = {
         "model": "openai/gpt-oss-20b",
         "api_key": api_key,
-        "temperature": 0.2,
     }
 
     if base_url:

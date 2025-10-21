@@ -1,0 +1,150 @@
+---
+globs: src/nilcode/agents/*.py
+---
+# Agent Implementation Guidelines
+
+## Agent Structure Pattern
+Every agent MUST follow this pattern:
+
+```python
+from typing import Dict, Any
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+from ..state.agent_state import AgentState
+
+AGENT_SYSTEM_PROMPT = """Your detailed system prompt here..."""
+
+class AgentNameAgent:
+    """Agent description."""
+    
+    def __init__(self, model: ChatOpenAI, tools: list = None):
+        self.model = model.bind_tools(tools) if tools else model
+        self.name = "agent_name"
+    
+    def __call__(self, state: AgentState) -> Dict[str, Any]:
+        """Execute the agent logic."""
+        # 1. Print status message
+        print(f"\n🔧 {self.name}: Starting work...")
+        
+        # 2. Access state fields
+        user_request = state["user_request"]
+        tasks = state["tasks"]
+        current_task = next((t for t in tasks if t["id"] == state.get("current_task_id")), None)
+        
+        # 3. Create prompt and invoke model
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", AGENT_SYSTEM_PROMPT),
+            ("human", "Task: {task}\nContext: {context}")
+        ])
+        messages = prompt.format_messages(task=current_task, context=user_request)
+        response = self.model.invoke(messages)
+        
+        # 4. Process tool calls if any
+        # Handle response.tool_calls...
+        
+        # 5. Determine next agent
+        next_agent = determine_next_agent(state["tasks"])
+        
+        # 6. Return state updates
+        return {
+            "messages": [response],
+            "next_agent": next_agent,
+            "modified_files": ["path/to/file"],
+            # Other state updates...
+        }
+
+def create_agent_name_agent(api_key: str, base_url: str = None) -> AgentNameAgent:
+    """Factory function to create agent."""
+    model_kwargs = {
+        "model": "openai/gpt-oss-20b",
+        "api_key": api_key,
+        "temperature": 0.2  # Adjust per agent
+    }
+    if base_url:
+        model_kwargs["base_url"] = base_url
+    
+    model = ChatOpenAI(**model_kwargs)
+    tools = [tool1, tool2, ...]  # Import from tools/
+    return AgentNameAgent(model, tools)
+```
+
+## Critical Rules
+
+### State Management
+- **READ state** using dict access: `state["user_request"]`, `state["tasks"]`
+- **UPDATE state** by returning a dict with changed fields only
+- **NEVER modify** state directly - always return updates
+- Use `state.get("field", default)` for optional fields
+
+### Agent Routing
+- Always set `next_agent` in return dict
+- Valid agent names: "planner", "software_architect", "frontend_developer", "backend_developer", "tester", "orchestrator"
+- Use `determine_next_agent(tasks)` from [utils.py](mdc:src/nilcode/agents/utils.py) for automatic routing
+- Set `next_agent = "orchestrator"` when all tasks are completed
+
+### Task Handling
+- Get current task: `current_task = next((t for t in tasks if t["id"] == state.get("current_task_id")), None)`
+- Update task status using tool: `update_task_status(task_id, "in_progress")`
+- Set task result using tool: `update_task_result(task_id, "Result description")`
+- Filter tasks by agent: `my_tasks = [t for t in tasks if t["assignedTo"] == self.name]`
+
+### Tool Usage
+- Import tools from `..tools.file_operations`, `..tools.task_management`, `..tools.code_analysis`
+- Bind tools to model: `self.model.bind_tools(tools)`
+- Check for tool calls: `if hasattr(response, "tool_calls") and response.tool_calls:`
+- Execute tool calls and collect results to add to messages
+
+### LLM Configuration
+- Default model: `"openai/gpt-oss-20b"` via OpenRouter
+- Temperature by agent:
+  - Planner: 0.3
+  - Architects/Developers: 0.2
+  - Tester: 0.1
+  - Orchestrator: 0.4
+- Always support optional `base_url` parameter for API endpoint flexibility
+
+### System Prompts
+- Define as module-level constant: `AGENT_SYSTEM_PROMPT = """..."""`
+- Clearly describe agent role, capabilities, and constraints
+- Include examples of expected behavior
+- Specify output format requirements
+- Reference available tools
+
+### Error Handling
+```python
+try:
+    # Agent logic
+except Exception as e:
+    print(f"❌ Error in {self.name}: {e}")
+    return {
+        "error": str(e),
+        "next_agent": "orchestrator",
+        "overall_status": "failed"
+    }
+```
+
+## Planner Agent Specifics
+- MUST return JSON with `tasks` array and `summary` field
+- Each task needs: `content`, `activeForm`, `assignedTo`
+- Use `set_task_storage(tasks)` to sync task tools with generated tasks
+- Parse JSON from response, handling markdown code blocks
+
+## Developer Agents (Frontend/Backend)
+- Focus on ONE task at a time
+- Use file operation tools extensively
+- Track `modified_files` in return dict
+- Include file content in `project_files` dict when creating files
+- Move to next task or orchestrator when done
+
+## Tester Agent
+- Validate code syntax using code analysis tools
+- Write unit tests for implemented features
+- Report test results in structured format
+- Set `overall_status = "completed"` when validation passes
+
+## Orchestrator Agent
+- Aggregate results from all agents
+- Provide final summary of work completed
+- List all modified files
+- Set `overall_status = "completed"` or `"failed"`
+- Always the final agent in the workflow

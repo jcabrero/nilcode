@@ -1,0 +1,457 @@
+---
+globs: pyproject.toml,requirements.txt,package.json,uv.lock
+---
+# Dependency Management Guidelines
+
+## Package Manager: UV
+
+NilCode uses [uv](https://github.com/astral-sh/uv) as the package manager for fast, reliable dependency management.
+
+## pyproject.toml Structure
+
+The [pyproject.toml](mdc:pyproject.toml) file defines the project:
+
+```toml
+[project]
+name = "nilcode"
+version = "0.1.0"
+description = "Multi-agent LangChain system for software development tasks"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "langchain>=1.0.1",
+    "langchain-anthropic>=1.0.0",
+    "langchain-openai>=1.0.0",
+    "langchain-core>=1.0.0",
+    "langgraph>=1.0.0",
+    "langsmith>=0.4.37",
+    "python-dotenv>=1.1.1",
+]
+
+[project.scripts]
+nilcode = "nilcode.main_agent:main"
+
+[tool.uv]
+package = true
+```
+
+## Core Dependencies
+
+### LangChain Ecosystem
+```toml
+dependencies = [
+    "langchain>=1.0.1",           # Core LangChain framework
+    "langchain-anthropic>=1.0.0", # Anthropic/Claude models
+    "langchain-openai>=1.0.0",    # OpenAI models
+    "langchain-core>=1.0.0",      # Core abstractions
+    "langgraph>=1.0.0",           # State graph workflow
+    "langsmith>=0.4.37",          # Tracing and monitoring
+]
+```
+
+### Utilities
+```toml
+dependencies = [
+    "python-dotenv>=1.1.1",  # Environment variable management
+]
+```
+
+## Managing Dependencies
+
+### Installing Dependencies
+```bash
+# Install all dependencies (creates/updates .venv)
+uv sync
+
+# Install with updates to latest compatible versions
+uv sync --upgrade
+
+# Install for development (if dev dependencies exist)
+uv sync --all-extras
+```
+
+### Adding Dependencies
+```bash
+# Add a runtime dependency
+uv add langchain-community
+
+# Add with version constraint
+uv add "pydantic>=2.0.0"
+
+# Add development dependency
+uv add --dev pytest
+uv add --dev black
+
+# Add multiple dependencies
+uv add fastapi uvicorn pydantic
+```
+
+### Removing Dependencies
+```bash
+# Remove a dependency
+uv remove langchain-community
+
+# Remove dev dependency
+uv remove --dev pytest
+```
+
+### Updating Dependencies
+```bash
+# Update all dependencies
+uv sync --upgrade
+
+# Update specific package
+uv add "langchain>=1.1.0" --upgrade
+```
+
+## Version Constraints
+
+### Constraint Types
+```toml
+# Minimum version
+"langchain>=1.0.0"
+
+# Compatible release (^)
+"langchain^1.0.0"  # Allows 1.x.x, but not 2.0.0
+
+# Exact version
+"langchain==1.0.0"
+
+# Version range
+"langchain>=1.0.0,<2.0.0"
+
+# Any version (not recommended)
+"langchain"
+```
+
+### Recommended Patterns
+```toml
+# Good: Specify minimum version
+"langchain>=1.0.1"
+
+# Good: Upper bound for major versions
+"langchain>=1.0.0,<2.0.0"
+
+# Avoid: Too restrictive
+"langchain==1.0.0"  # Prevents updates
+
+# Avoid: No version constraint
+"langchain"  # Can break unexpectedly
+```
+
+## Lock File (uv.lock)
+
+### Purpose
+- Ensures reproducible installs
+- Records exact versions installed
+- Includes transitive dependencies
+- Committed to version control
+
+### Usage
+```bash
+# Generate/update lock file
+uv sync
+
+# Install from lock file
+uv sync  # Uses uv.lock if present
+
+# Ignore lock file (not recommended)
+uv sync --no-lock
+```
+
+## Python Version Requirement
+
+### Specifying Python Version
+```toml
+[project]
+requires-python = ">=3.14"
+```
+
+### Checking Python Version
+```bash
+# Check current Python version
+python --version
+
+# UV will verify Python version automatically
+uv sync  # Errors if Python < 3.14
+```
+
+## Entry Points
+
+### CLI Entry Point
+```toml
+[project.scripts]
+nilcode = "nilcode.main_agent:main"
+```
+
+This creates a `nilcode` command that runs the `main()` function from `nilcode.main_agent` module.
+
+### Usage
+```bash
+# After installation
+uv run nilcode
+
+# Or with UV without installation
+uv run python -m nilcode.main_agent
+```
+
+## Optional Dependencies
+
+### Defining Optional Groups
+```toml
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+]
+all = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "mkdocs>=1.5.0",
+]
+```
+
+### Installing Optional Groups
+```bash
+# Install dev dependencies
+uv sync --extra dev
+
+# Install docs dependencies
+uv sync --extra docs
+
+# Install all optional dependencies
+uv sync --all-extras
+```
+
+## Virtual Environment
+
+### UV Virtual Environment
+```bash
+# UV automatically creates .venv/
+uv sync
+
+# Activate manually (if needed)
+source .venv/bin/activate  # Linux/Mac
+.venv\Scripts\activate     # Windows
+
+# Run without activating
+uv run python script.py
+uv run nilcode
+```
+
+### Environment Location
+- Default: `.venv/` in project root
+- Automatically detected by UV
+- Ignored by git (in .gitignore)
+
+## Dependency Resolution
+
+### Conflict Resolution
+```bash
+# UV resolves conflicts automatically
+uv sync
+
+# View dependency tree
+uv tree
+
+# Check for conflicts
+uv check
+```
+
+### Troubleshooting
+```bash
+# Clear cache and reinstall
+rm -rf .venv/
+uv sync
+
+# Verbose output
+uv sync --verbose
+
+# Show what would be installed
+uv sync --dry-run
+```
+
+## Development Dependencies
+
+### Common Dev Dependencies
+```toml
+[project.optional-dependencies]
+dev = [
+    # Testing
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    
+    # Linting & Formatting
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    
+    # Documentation
+    "mkdocs>=1.5.0",
+    
+    # Utilities
+    "ipython>=8.0.0",
+]
+```
+
+## Testing Requirements
+
+### Test Dependencies
+```bash
+# Add testing dependencies
+uv add --dev pytest pytest-cov
+
+# Run tests with UV
+uv run pytest
+
+# Run with coverage
+uv run pytest --cov=nilcode
+```
+
+## Pinning Dependencies
+
+### When to Pin
+- Production deployments
+- CI/CD pipelines
+- Reproducible builds
+
+### How to Pin
+```toml
+# Exact versions
+dependencies = [
+    "langchain==1.0.1",
+    "langchain-openai==1.0.0",
+]
+
+# Or use uv.lock (recommended)
+# uv.lock automatically pins all dependencies
+```
+
+## Upgrading Dependencies
+
+### Safe Upgrade Process
+```bash
+# 1. Check current versions
+uv tree
+
+# 2. Update lock file
+uv sync --upgrade
+
+# 3. Run tests
+uv run pytest
+
+# 4. Commit updated uv.lock
+git add uv.lock
+git commit -m "Update dependencies"
+```
+
+### Upgrading Specific Packages
+```bash
+# Upgrade one package
+uv add "langchain>=1.1.0" --upgrade
+
+# Test thoroughly
+uv run pytest
+```
+
+## Security Updates
+
+### Checking for Vulnerabilities
+```bash
+# Use pip-audit (add as dev dependency)
+uv add --dev pip-audit
+uv run pip-audit
+
+# Or use safety
+uv add --dev safety
+uv run safety check
+```
+
+### Applying Security Updates
+```bash
+# Update to latest secure versions
+uv sync --upgrade
+
+# Verify no vulnerabilities
+uv run pip-audit
+```
+
+## Dependency Best Practices
+
+### General Guidelines
+1. **Specify minimum versions** - Use `>=` for flexibility
+2. **Constrain major versions** - Prevent breaking changes
+3. **Keep dependencies updated** - Regular updates for security
+4. **Use lock file** - Commit `uv.lock` for reproducibility
+5. **Test after updates** - Run full test suite
+6. **Document special dependencies** - Comment unusual requirements
+
+### Example Best Practice
+```toml
+dependencies = [
+    # Core LangChain - minimum version for required features
+    "langchain>=1.0.1,<2.0.0",
+    
+    # OpenAI integration - must be compatible with langchain
+    "langchain-openai>=1.0.0,<2.0.0",
+    
+    # State management - requires specific version for compatibility
+    "langgraph>=1.0.0,<2.0.0",
+    
+    # Utilities - flexible versioning
+    "python-dotenv>=1.0.0",
+]
+```
+
+## CI/CD Integration
+
+### GitHub Actions Example
+```yaml
+- name: Install dependencies
+  run: |
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    uv sync
+
+- name: Run tests
+  run: uv run pytest
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### UV not found
+```bash
+# Install UV
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+#### Wrong Python version
+```bash
+# Check Python version
+python --version
+
+# Use specific Python with UV
+uv --python 3.14 sync
+```
+
+#### Dependency conflicts
+```bash
+# Clear and reinstall
+rm -rf .venv/ uv.lock
+uv sync
+```
+
+#### Slow installations
+```bash
+# UV is fast, but if slow:
+# 1. Check network connection
+# 2. Clear cache: rm -rf ~/.cache/uv
+# 3. Update UV: curl -LsSf https://astral.sh/uv/install.sh | sh
+```

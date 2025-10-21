@@ -37,6 +37,11 @@ class AgentState(TypedDict):
     # Project context
     project_files: Dict[str, str]  # file_path -> content
     modified_files: List[str]  # Track which files were modified
+    working_directory: str  # Current working directory for the project
+
+    # Codebase understanding
+    codebase_context: Dict[str, Any]  # Context gathered about existing code
+    relevant_files: List[str]  # Files identified as relevant to current task
 
     # Code context
     frontend_tech: List[str]  # e.g., ["react", "typescript"]
@@ -49,22 +54,31 @@ class AgentState(TypedDict):
     plan: str  # The plan created by planner
     implementation_results: Dict[str, Any]  # Results from developer agents
     test_results: Dict[str, Any]  # Results from tester
+    context_summary: str  # Summary of gathered codebase context
+
+    # Execution tracking
+    command_history: List[Dict[str, Any]]  # History of commands executed
+    test_execution_results: List[Dict[str, Any]]  # Results from test runs
+    linter_results: Dict[str, Any]  # Linting results
 
     # Status tracking
-    overall_status: Literal["planning", "architecting", "implementing", "testing", "completed", "failed"]
+    overall_status: Literal["planning", "gathering_context", "architecting", "implementing", "testing", "completed", "failed"]
     error: str  # Any errors encountered
+    iteration_count: int  # Track iterations for error recovery
 
 
-def create_initial_state(user_request: str) -> AgentState:
+def create_initial_state(user_request: str, working_directory: str = ".") -> AgentState:
     """
     Create the initial state for a new agent workflow.
 
     Args:
         user_request: The user's request/query
+        working_directory: Working directory for the project
 
     Returns:
         Initial AgentState
     """
+    import os
     return AgentState(
         messages=[],
         user_request=user_request,
@@ -72,12 +86,20 @@ def create_initial_state(user_request: str) -> AgentState:
         current_task_id="",
         project_files={},
         modified_files=[],
+        working_directory=os.path.abspath(working_directory),
+        codebase_context={},
+        relevant_files=[],
         frontend_tech=[],
         backend_tech=[],
         next_agent="planner",
         plan="",
         implementation_results={},
         test_results={},
+        context_summary="",
+        command_history=[],
+        test_execution_results=[],
+        linter_results={},
         overall_status="planning",
-        error=""
+        error="",
+        iteration_count=0
     )

@@ -199,7 +199,6 @@ def create_planner_agent(api_key: str, base_url: str = None) -> PlannerAgent:
     model_kwargs = {
         "model": "openai/gpt-oss-20b",
         "api_key": api_key,
-        "temperature": 0.3
     }
 
     if base_url:

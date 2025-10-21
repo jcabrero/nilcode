@@ -1,0 +1,381 @@
+---
+globs: src/nilcode/agents/context_gatherer.py,src/nilcode/agents/error_recovery.py
+---
+# Specialized Agent Guidelines
+
+## Context Gatherer Agent
+
+### Purpose
+The Context Gatherer ([context_gatherer.py](mdc:src/nilcode/agents/context_gatherer.py)) analyzes existing codebases to understand structure, patterns, and context before other agents begin work.
+
+### When to Use
+- Working with existing codebases (not greenfield projects)
+- User requests modifications to existing code
+- Need to understand project structure and patterns
+- Before implementing features in established projects
+
+### Responsibilities
+1. **Scan project structure** - Identify key directories and files
+2. **Read relevant files** - Analyze existing code, configs, and documentation
+3. **Extract patterns** - Identify coding patterns, frameworks, and conventions
+4. **Generate context summary** - Create comprehensive overview for other agents
+5. **Identify dependencies** - Document project dependencies and tech stack
+
+### State Fields Used
+```python
+state["context_summary"]      # Summary of gathered context (OUTPUT)
+state["analyzed_files"]       # List of files analyzed (OUTPUT)
+state["project_structure"]    # Directory structure info (OUTPUT)
+state["tech_stack"]          # Identified technologies (OUTPUT)
+state["working_directory"]   # Where to scan (INPUT)
+```
+
+### Tools Used
+```python
+from nilcode.tools.file_operations import list_files, read_file
+from nilcode.tools.code_analysis import analyze_python_syntax, check_imports
+from nilcode.tools.codebase_tools import search_codebase, find_files
+```
+
+### Configuration
+```python
+config.get_agent_settings('context_gatherer'):
+{
+  "temperature": 0.2,
+  "max_files_to_read": 50,
+  "auto_gather": true
+}
+```
+
+### Workflow Integration
+```python
+# Context Gatherer runs BEFORE planner if existing code is detected
+START → context_gatherer → planner → ... → END
+
+# Skip for greenfield projects
+START → planner → ... → END
+```
+
+### Implementation Pattern
+```python
+class ContextGathererAgent:
+    """Gathers context from existing codebase."""
+    
+    def __call__(self, state: AgentState) -> Dict[str, Any]:
+        print("\n📚 Context Gatherer: Analyzing existing codebase...")
+        
+        # 1. Get working directory
+        work_dir = state.get("working_directory", ".")
+        
+        # 2. List directory structure
+        structure = list_files(work_dir)
+        
+        # 3. Identify important files to read
+        important_files = self._identify_important_files(structure)
+        
+        # 4. Read and analyze files (respecting max_files_to_read limit)
+        analyzed_files = []
+        for file_path in important_files[:self.max_files_to_read]:
+            content = read_file(file_path)
+            analyzed_files.append(file_path)
+        
+        # 5. Generate context summary using LLM
+        summary = self._generate_summary(structure, analyzed_files)
+        
+        # 6. Return updates
+        return {
+            "context_summary": summary,
+            "analyzed_files": analyzed_files,
+            "project_structure": structure,
+            "next_agent": "planner",
+            "overall_status": "planning"
+        }
+```
+
+### Context Summary Format
+```
+Project: FastAPI Todo API
+Tech Stack: Python 3.11, FastAPI, SQLAlchemy, PostgreSQL
+Structure:
+  - src/api/ - API routes and endpoints
+  - src/models/ - Database models
+  - src/services/ - Business logic
+  - tests/ - Unit and integration tests
+
+Key Patterns:
+  - Dependency injection for services
+  - Async/await throughout
+  - Pydantic for validation
+  - Repository pattern for data access
+
+Existing Features:
+  - User authentication (JWT)
+  - CRUD operations for todos
+  - Task assignment and status tracking
+
+Recommendations for new work:
+  - Follow existing async patterns
+  - Add new routes in src/api/
+  - Use existing authentication middleware
+  - Write tests in tests/ directory
+```
+
+## Error Recovery Agent
+
+### Purpose
+The Error Recovery Agent ([error_recovery.py](mdc:src/nilcode/agents/error_recovery.py)) detects and fixes errors in generated code, including syntax errors, import issues, and test failures.
+
+### When to Use
+- After code generation by developer agents
+- When tests fail
+- When linter reports errors
+- Syntax errors in generated code
+- Import or dependency issues
+
+### Responsibilities
+1. **Detect errors** - Analyze code for syntax, import, and runtime errors
+2. **Diagnose issues** - Determine root cause of failures
+3. **Generate fixes** - Create corrected code
+4. **Validate fixes** - Ensure fixes resolve the issues
+5. **Iterate if needed** - Retry up to max_iterations times
+
+### State Fields Used
+```python
+state["error"]               # Current error message (INPUT)
+state["modified_files"]      # Files that may have errors (INPUT)
+state["error_fixed"]         # Whether error was resolved (OUTPUT)
+state["fix_iterations"]      # Number of fix attempts (OUTPUT)
+```
+
+### Tools Used
+```python
+from nilcode.tools.code_analysis import (
+    analyze_python_syntax,
+    check_imports,
+    validate_code_style
+)
+from nilcode.tools.file_operations import read_file, edit_file
+from nilcode.tools.terminal_tools import run_tests, run_linter
+```
+
+### Configuration
+```python
+config.get_agent_settings('error_recovery'):
+{
+  "temperature": 0.1,        # Low temp for deterministic fixes
+  "max_iterations": 5,       # Maximum fix attempts
+  "auto_fix": true          # Automatically attempt fixes
+}
+```
+
+### Workflow Integration
+```python
+# Error Recovery runs AFTER tester if errors are detected
+tester → error_recovery → tester → ... → orchestrator
+
+# Or after developer agents if syntax errors occur
+frontend_developer → error_recovery → tester
+```
+
+### Implementation Pattern
+```python
+class ErrorRecoveryAgent:
+    """Recovers from errors in generated code."""
+    
+    def __init__(self, model: ChatOpenAI, tools: list = None):
+        self.model = model.bind_tools(tools) if tools else model
+        self.max_iterations = 5
+    
+    def __call__(self, state: AgentState) -> Dict[str, Any]:
+        print("\n🔧 Error Recovery: Analyzing and fixing errors...")
+        
+        # 1. Get error information
+        error_msg = state.get("error", "")
+        modified_files = state.get("modified_files", [])
+        
+        if not error_msg and not modified_files:
+            return {"next_agent": "orchestrator"}
+        
+        # 2. Analyze files for errors
+        errors_found = []
+        for file_path in modified_files:
+            # Check syntax
+            syntax_result = analyze_python_syntax(file_path)
+            if "error" in syntax_result.lower():
+                errors_found.append({
+                    "file": file_path,
+                    "type": "syntax",
+                    "message": syntax_result
+                })
+            
+            # Check imports
+            import_result = check_imports(file_path)
+            # ... check for missing imports
+        
+        if not errors_found:
+            return {
+                "error_fixed": True,
+                "next_agent": "tester",
+                "error": None
+            }
+        
+        # 3. Attempt to fix errors (using LLM)
+        fixes_applied = []
+        for error in errors_found:
+            fix = self._generate_fix(error)
+            if fix:
+                edit_file(error["file"], error["old_code"], fix["new_code"])
+                fixes_applied.append(error["file"])
+        
+        # 4. Increment iteration counter
+        iterations = state.get("fix_iterations", 0) + 1
+        
+        # 5. Decide next step
+        if iterations >= self.max_iterations:
+            return {
+                "error": "Max recovery iterations reached",
+                "next_agent": "orchestrator",
+                "overall_status": "failed",
+                "fix_iterations": iterations
+            }
+        
+        # Try testing again
+        return {
+            "fix_iterations": iterations,
+            "modified_files": fixes_applied,
+            "next_agent": "tester",
+            "error": None
+        }
+```
+
+### Error Types Handled
+
+#### Syntax Errors
+```python
+# Detect
+"SyntaxError: invalid syntax at line 15"
+
+# Fix
+- Missing colons
+- Incorrect indentation
+- Unclosed brackets/quotes
+- Invalid Python syntax
+```
+
+#### Import Errors
+```python
+# Detect
+"ImportError: No module named 'requests'"
+
+# Fix
+- Add missing imports
+- Fix import paths
+- Install missing packages (via install_package tool)
+```
+
+#### Test Failures
+```python
+# Detect
+"AssertionError: Expected 200, got 404"
+
+# Fix
+- Correct logic errors
+- Fix API endpoints
+- Update test expectations
+```
+
+#### Type Errors
+```python
+# Detect
+"TypeError: unsupported operand type(s)"
+
+# Fix
+- Add type conversions
+- Fix type annotations
+- Correct variable usage
+```
+
+### Fix Validation
+```python
+def validate_fix(self, file_path: str) -> bool:
+    """Validate that fix resolved the error."""
+    # Check syntax
+    syntax_ok = "valid" in analyze_python_syntax(file_path).lower()
+    
+    # Run tests if available
+    test_result = run_tests(f"tests/test_{Path(file_path).stem}.py")
+    tests_pass = "passed" in test_result.lower()
+    
+    return syntax_ok and (tests_pass or "no tests" in test_result.lower())
+```
+
+### Preventing Infinite Loops
+```python
+# Track iterations
+if state.get("fix_iterations", 0) >= self.max_iterations:
+    return {
+        "error": "Could not resolve errors after maximum attempts",
+        "next_agent": "orchestrator",
+        "overall_status": "failed"
+    }
+
+# Detect same error repeating
+previous_errors = state.get("previous_errors", [])
+if error_msg in previous_errors:
+    # Error hasn't changed, different approach needed
+    pass
+```
+
+## Workflow with Specialized Agents
+
+### Full Workflow with Context Gathering
+```
+START
+  ↓
+context_gatherer (if existing codebase)
+  ↓
+planner
+  ↓
+software_architect
+  ↓
+frontend_developer / backend_developer
+  ↓
+tester ←→ error_recovery (if errors found)
+  ↓
+orchestrator
+  ↓
+END
+```
+
+### Conditional Execution
+```python
+def should_gather_context(user_request: str, working_dir: str) -> bool:
+    """Determine if context gathering is needed."""
+    from nilcode.config import get_config
+    
+    config = get_config()
+    
+    # Check config
+    if not config.get('workflow_settings.enable_context_gathering', True):
+        return False
+    
+    # Check if existing project (has git, package.json, etc.)
+    indicators = ['.git', 'package.json', 'pyproject.toml', 'src/', 'app/']
+    return any((Path(working_dir) / indicator).exists() for indicator in indicators)
+
+def should_attempt_recovery(state: AgentState) -> bool:
+    """Determine if error recovery should run."""
+    from nilcode.config import get_config
+    
+    config = get_config()
+    
+    # Check config
+    if not config.get('workflow_settings.enable_error_recovery', True):
+        return False
+    
+    # Check for errors
+    has_error = bool(state.get("error"))
+    test_failed = state.get("test_results", {}).get("failed", 0) > 0
+    
+    return has_error or test_failed
+```

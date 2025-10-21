@@ -1,0 +1,379 @@
+---
+globs: src/nilcode/cli.py,src/nilcode/main_agent.py
+---
+# CLI & User Interface Guidelines
+
+## CLI Module Overview
+The [cli.py](mdc:src/nilcode/cli.py) module provides a rich, colorful terminal interface for user interaction and status display.
+
+## Color System
+
+### Available Colors
+```python
+from nilcode.cli import Colors
+
+Colors.HEADER      # Purple/magenta
+Colors.OKBLUE      # Blue
+Colors.OKCYAN      # Cyan
+Colors.OKGREEN     # Green
+Colors.WARNING     # Yellow
+Colors.FAIL        # Red
+Colors.ENDC        # Reset
+Colors.BOLD        # Bold text
+Colors.UNDERLINE   # Underlined text
+```
+
+### Using Colors
+```python
+print(f"{Colors.OKGREEN}Success!{Colors.ENDC}")
+print(f"{Colors.FAIL}Error occurred{Colors.ENDC}")
+print(f"{Colors.BOLD}{Colors.OKCYAN}Important Info{Colors.ENDC}")
+```
+
+## Display Functions
+
+### Banner
+```python
+from nilcode.cli import print_banner
+
+# Show NilCode ASCII art banner
+print_banner()
+```
+
+### Section Headers
+```python
+from nilcode.cli import print_section
+
+print_section("Processing Request", "=")  # Heavy separator
+print_section("Status Update", "-")      # Light separator
+```
+
+### Agent Status
+```python
+from nilcode.cli import print_agent_status
+
+# Show agent activity
+print_agent_status("planner", "running")
+print_agent_status("frontend_developer", "completed")
+print_agent_status("tester", "failed")
+print_agent_status("orchestrator", "waiting")
+```
+
+### Progress Bar
+```python
+from nilcode.cli import print_progress
+
+# Show progress with task name
+for i in range(total_tasks):
+    print_progress(i + 1, total_tasks, f"Task {i+1}")
+```
+
+### Task List Display
+```python
+from nilcode.cli import print_task_list
+
+tasks = state["tasks"]
+print_task_list(tasks)  # Formatted with icons and colors
+```
+
+### File Modifications
+```python
+from nilcode.cli import print_files_modified
+
+modified_files = state["modified_files"]
+print_files_modified(modified_files)
+```
+
+### Summary Display
+```python
+from nilcode.cli import print_summary
+
+# Show complete execution summary
+print_summary(final_state)
+```
+
+## Message Functions
+
+### Success Messages
+```python
+from nilcode.cli import print_success
+
+print_success("All tests passed")
+print_success("Project created successfully")
+```
+
+### Error Messages
+```python
+from nilcode.cli import print_error
+
+print_error("Failed to read file")
+print_error("API key not found")
+```
+
+### Warning Messages
+```python
+from nilcode.cli import print_warning
+
+print_warning("File already exists, overwriting")
+print_warning("No tests found")
+```
+
+### Info Messages
+```python
+from nilcode.cli import print_info
+
+print_info("Starting workflow...")
+print_info("Using model: openai/gpt-oss-20b")
+```
+
+### Streaming Updates
+```python
+from nilcode.cli import print_streaming_update
+
+# Show real-time agent output
+print_streaming_update("planner", "Analyzing request and creating tasks...")
+```
+
+## User Input
+
+### Getting Input
+```python
+from nilcode.cli import get_user_input
+
+request = get_user_input("What would you like to build?")
+request = get_user_input("Enter your project name:")
+```
+
+### Confirmation Dialogs
+```python
+from nilcode.cli import confirm_action
+
+if confirm_action("Do you want to overwrite existing files?"):
+    # User confirmed
+    proceed_with_overwrite()
+else:
+    # User declined
+    abort_operation()
+```
+
+## Interactive Mode
+
+### Running Interactive CLI
+```python
+from nilcode.cli import interactive_mode
+
+# Start interactive session
+interactive_mode(agent_system)
+```
+
+### Interactive Commands
+- `help` - Show available commands
+- `exit` or `quit` - Exit the program
+- `clear` - Clear screen
+- `status` - Show system status
+- Any other input - Treated as a request to process
+
+### Interactive Mode Features
+- Continuous loop for multiple requests
+- Keyboard interrupt handling (Ctrl+C)
+- Command history
+- Streaming output
+- Error recovery
+
+## Single Command Mode
+
+### Running One Command
+```python
+from nilcode.cli import run_single_command
+
+exit_code = run_single_command(
+    agent_system,
+    "Create a login page",
+    verbose=True
+)
+
+sys.exit(exit_code)  # 0 for success, 1 for failure
+```
+
+## CLI Best Practices
+
+### Status Icons
+Use consistent icons throughout:
+- ▶️ Running/In Progress
+- ✅ Completed/Success
+- ❌ Failed/Error
+- ⏸️ Pending/Waiting
+- ⚠️ Warning
+- ℹ️ Information
+- 📝 File modification
+- 📦 Staged
+- 🌿 Branch
+- 🐍 Python
+- 🛠️ Tools
+
+### Formatting Guidelines
+```python
+# Good: Clear, colored output
+print(f"{Colors.OKGREEN}✅ Task completed{Colors.ENDC}")
+
+# Good: Structured information
+print_section("RESULTS", "=")
+print_task_list(tasks)
+
+# Bad: No color or structure
+print("Task completed")
+```
+
+### Error Display
+```python
+# Good: Clear error with icon
+print_error("File not found: config.json")
+
+# Good: With details
+try:
+    # operation
+except Exception as e:
+    print_error(f"Operation failed: {str(e)}")
+    if os.getenv("DEBUG"):
+        import traceback
+        traceback.print_exc()
+```
+
+### Progress Feedback
+```python
+# For long operations, show progress
+print_agent_status("context_gatherer", "running")
+# ... operation ...
+print_agent_status("context_gatherer", "completed")
+
+# For multiple steps
+total = len(files)
+for i, file in enumerate(files):
+    print_progress(i + 1, total, f"Processing {file}")
+```
+
+## Integration with Main Agent
+
+### In Main Execution Loop
+```python
+from nilcode.cli import (
+    print_banner, print_section, print_agent_status,
+    print_summary, print_error
+)
+
+def main():
+    """Main entry point."""
+    print_banner()
+    
+    try:
+        # Get input
+        user_request = get_user_input()
+        
+        print_section("PROCESSING REQUEST", "=")
+        
+        # Execute workflow
+        for event in app.stream(initial_state):
+            agent_name = list(event.keys())[0]
+            print_agent_status(agent_name, "completed")
+        
+        # Show results
+        final_state = get_final_state()
+        print_summary(final_state)
+        
+    except KeyboardInterrupt:
+        print_warning("Interrupted by user")
+    except Exception as e:
+        print_error(f"Execution failed: {e}")
+```
+
+### Streaming Display
+```python
+# Show real-time updates during workflow
+def stream_workflow(user_request: str):
+    """Execute workflow with streaming output."""
+    initial_state = create_initial_state(user_request)
+    
+    for event in app.stream(initial_state):
+        agent_name = list(event.keys())[0]
+        agent_state = event[agent_name]
+        
+        # Show agent activity
+        print_agent_status(agent_name, "running")
+        
+        # Show any messages
+        if "messages" in agent_state:
+            last_msg = agent_state["messages"][-1]
+            if hasattr(last_msg, 'content'):
+                print_streaming_update(agent_name, last_msg.content[:200])
+        
+        print_agent_status(agent_name, "completed")
+```
+
+## Debug Mode
+
+### Using DEBUG Environment Variable
+```python
+import os
+
+if os.getenv("DEBUG"):
+    # Show detailed information
+    print(f"State: {state}")
+    print(f"Messages: {messages}")
+    import traceback
+    traceback.print_exc()
+```
+
+## Terminal Compatibility
+
+### Windows Support
+```python
+# Clear screen cross-platform
+import os
+os.system('clear' if os.name == 'posix' else 'cls')
+```
+
+### Color Disabling
+Check config before using colors:
+```python
+from nilcode.config import get_config
+
+config = get_config()
+if not config.get('output_settings.color_output', True):
+    # Don't use color codes
+    print("Success")
+else:
+    print(f"{Colors.OKGREEN}Success{Colors.ENDC}")
+```
+
+## Output Length Management
+
+### Truncating Long Output
+```python
+def print_truncated(content: str, max_length: int = 200):
+    """Print content with truncation."""
+    if len(content) > max_length:
+        print(f"{content[:max_length]}...")
+    else:
+        print(content)
+```
+
+### Summary Truncation
+```python
+# Already implemented in CLI functions
+print_streaming_update(agent_name, content)  # Auto-truncates at 200 chars
+```
+
+## Testing CLI Output
+
+### Mock CLI in Tests
+```python
+from unittest.mock import patch
+import io
+
+def test_cli_output():
+    """Test CLI output functions."""
+    with patch('sys.stdout', new=io.StringIO()) as fake_stdout:
+        print_success("Test message")
+        output = fake_stdout.getvalue()
+        assert "Test message" in output
+```

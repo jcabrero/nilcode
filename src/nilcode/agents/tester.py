@@ -171,14 +171,25 @@ Please:
             response = self.model.invoke(messages_history)
             messages_history.append(response)
 
+        # Generate final summary after all tools are done
+        if not response.content or len(response.content.strip()) < 50:
+            print("    📝 Generating final summary...")
+            from langchain_core.messages import HumanMessage
+            messages_history.append(HumanMessage(
+                content="Please provide a comprehensive summary of the test results and validation you just performed, including any issues found or confirmations that the code is working correctly."
+            ))
+            response = self.model.invoke(messages_history)
+            messages_history.append(response)
+
         print(f"\n✅ Testing and validation completed!")
-        print(f"Summary: {response.content[:200]}...")
+        summary = response.content if response.content else "Testing completed"
+        print(f"Summary: {summary[:200]}..." if len(summary) > 200 else f"Summary: {summary}")
 
         return {
             "messages": messages_history,
             "next_agent": "orchestrator",  # Return to orchestrator
             "test_results": {
-                "summary": response.content,
+                "summary": summary,
                 "tool_outputs": test_outputs
             },
             "overall_status": "completed"
@@ -199,7 +210,6 @@ def create_tester_agent(api_key: str, base_url: str = None) -> TesterAgent:
     model_kwargs = {
         "model": "openai/gpt-oss-20b",
         "api_key": api_key,
-        "temperature": 0.1  # Lower temperature for more consistent validation
     }
 
     if base_url:

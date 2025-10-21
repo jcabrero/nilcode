@@ -1,0 +1,366 @@
+---
+alwaysApply: true
+---
+# Environment & LLM Configuration Guidelines
+
+## Environment Variables
+
+### Required API Keys
+The system requires ONE of these API keys:
+- `OPENROUTER_API_KEY` - For OpenRouter API (recommended)
+- `OPENAI_API_KEY` - For OpenAI API
+
+### Optional Environment Variables
+- `OPENROUTER_BASE_URL` - Custom OpenRouter endpoint (default: https://openrouter.ai/api/v1)
+- `OPENAI_BASE_URL` - Custom OpenAI endpoint
+- `DEBUG` - Enable debug output (set to any value)
+
+### Environment File Setup
+Create a `.env` file in project root:
+```bash
+# .env
+OPENROUTER_API_KEY=sk-or-v1-xxxxx
+# or
+OPENAI_API_KEY=sk-xxxxx
+
+# Optional
+DEBUG=1
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+```
+
+### Loading Environment Variables
+```python
+from dotenv import load_dotenv
+import os
+
+# Load .env file
+load_dotenv()
+
+# Get API key with fallback
+api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
+if not api_key:
+    raise ValueError("Missing API key: Set OPENROUTER_API_KEY or OPENAI_API_KEY")
+
+# Get optional values
+base_url = os.getenv("OPENROUTER_BASE_URL")
+debug_mode = os.getenv("DEBUG") is not None
+```
+
+## LLM Configuration
+
+### Default Model
+```python
+DEFAULT_MODEL = "openai/gpt-oss-20b"  # OpenRouter model
+```
+
+### Model Selection Priority
+1. Config file (`llm_settings.model`)
+2. Environment variable
+3. Function parameter
+4. Default model constant
+
+### Creating LLM Instance
+```python
+from langchain_openai import ChatOpenAI
+
+def create_llm(
+    api_key: str,
+    base_url: str = None,
+    model: str = None,
+    temperature: float = 0.2,
+    max_tokens: int = 4096,
+    timeout: int = 60
+) -> ChatOpenAI:
+    """
+    Create configured LLM instance.
+    
+    Args:
+        api_key: OpenRouter or OpenAI API key
+        base_url: Optional custom API endpoint
+        model: Model name (default: openai/gpt-oss-20b)
+        temperature: Sampling temperature (0.0-1.0)
+        max_tokens: Maximum tokens in response
+        timeout: Request timeout in seconds
+    
+    Returns:
+        Configured ChatOpenAI instance
+    """
+    model_kwargs = {
+        "model": model or "openai/gpt-oss-20b",
+        "api_key": api_key,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "timeout": timeout
+    }
+    
+    if base_url:
+        model_kwargs["base_url"] = base_url
+    
+    return ChatOpenAI(**model_kwargs)
+```
+
+### Temperature Settings by Agent
+```python
+AGENT_TEMPERATURES = {
+    "planner": 0.3,           # Needs creativity for task breakdown
+    "context_gatherer": 0.2,  # Factual information gathering
+    "software_architect": 0.2,# Structured, methodical
+    "frontend_developer": 0.2,# Precise code generation
+    "backend_developer": 0.2, # Precise code generation
+    "tester": 0.1,           # Very deterministic validation
+    "error_recovery": 0.1,   # Deterministic error fixing
+    "orchestrator": 0.4      # Needs flexibility for summaries
+}
+```
+
+### Agent Creation Pattern
+```python
+def create_agent(api_key: str, base_url: str = None):
+    """Create agent with proper LLM configuration."""
+    from nilcode.config import get_config
+    
+    config = get_config()
+    agent_config = config.get_agent_settings('agent_name')
+    
+    # Build model kwargs
+    model_kwargs = {
+        "model": config.get('llm_settings.model', 'openai/gpt-oss-20b'),
+        "api_key": api_key,
+        "temperature": agent_config.get('temperature', 0.2),
+        "max_tokens": config.get('llm_settings.max_tokens', 4096),
+        "timeout": config.get('llm_settings.timeout', 60)
+    }
+    
+    # Add base_url if provided or in config
+    if base_url:
+        model_kwargs["base_url"] = base_url
+    elif config.get('llm_settings.base_url'):
+        model_kwargs["base_url"] = config.get('llm_settings.base_url')
+    
+    model = ChatOpenAI(**model_kwargs)
+    return AgentClass(model, tools)
+```
+
+## Package Management with UV
+
+### Installing Dependencies
+```bash
+# Install all dependencies
+uv sync
+
+# Add new dependency
+uv add langchain
+
+# Add dev dependency
+uv add --dev pytest
+
+# Update dependencies
+uv sync --upgrade
+```
+
+### Python Version
+This project requires **Python 3.14+** as specified in [pyproject.toml](mdc:pyproject.toml).
+
+### Virtual Environment
+UV automatically manages virtual environments:
+```bash
+# Run with uv (uses .venv automatically)
+uv run python src/nilcode/main_agent.py
+
+# Or use the installed command
+uv run nilcode
+```
+
+## Project Dependencies
+
+### Core Dependencies
+From [pyproject.toml](mdc:pyproject.toml):
+- `langchain>=1.0.1` - LLM framework
+- `langchain-anthropic>=1.0.0` - Anthropic models support
+- `langchain-openai>=1.0.0` - OpenAI models support
+- `langchain-core>=1.0.0` - Core LangChain functionality
+- `langgraph>=1.0.0` - State graph workflow
+- `langsmith>=0.4.37` - LangSmith tracing
+- `python-dotenv>=1.1.1` - Environment variables
+
+### Import Patterns
+```python
+# LangChain imports
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.tools import tool
+
+# LangGraph imports
+from langgraph.graph import StateGraph, END
+
+# Package imports (relative to nilcode)
+from nilcode.state.agent_state import AgentState
+from nilcode.tools.file_operations import write_file
+from nilcode.agents.utils import determine_next_agent
+```
+
+## Running the System
+
+### Interactive Mode
+```bash
+# Using uv
+uv run nilcode
+
+# Or directly
+uv run python src/nilcode/main_agent.py
+```
+
+### Single Command
+```bash
+# Pass request as argument
+uv run nilcode "Create a todo app"
+```
+
+### From Python Code
+```python
+from nilcode.main_agent import create_workflow
+from nilcode.state.agent_state import create_initial_state
+
+def run_request(user_request: str):
+    """Execute a request programmatically."""
+    import os
+    from dotenv import load_dotenv
+    
+    load_dotenv()
+    api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
+    base_url = os.getenv("OPENROUTER_BASE_URL")
+    
+    # Create workflow
+    workflow = create_workflow(api_key, base_url)
+    
+    # Execute
+    initial_state = create_initial_state(user_request)
+    final_state = workflow.invoke(initial_state)
+    
+    return final_state
+```
+
+## Error Handling
+
+### Missing API Key
+```python
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
+
+if not api_key:
+    print("❌ Error: API key not found!")
+    print("Please set OPENROUTER_API_KEY or OPENAI_API_KEY in .env file")
+    sys.exit(1)
+```
+
+### API Rate Limits
+```python
+from langchain_openai import ChatOpenAI
+
+try:
+    response = model.invoke(messages)
+except Exception as e:
+    if "rate limit" in str(e).lower():
+        print("⚠️  Rate limit exceeded. Please wait and try again.")
+    else:
+        raise
+```
+
+### Network Timeouts
+```python
+# Set reasonable timeout
+model = ChatOpenAI(
+    api_key=api_key,
+    timeout=60,  # 60 second timeout
+    max_retries=2  # Retry on failure
+)
+```
+
+## Testing Setup
+
+### Test Environment
+```python
+# test_*.py files
+import os
+from dotenv import load_dotenv
+
+def setup_test_environment():
+    """Setup environment for testing."""
+    load_dotenv()
+    
+    api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        pytest.skip("No API key available for testing")
+    
+    return api_key
+
+# Use in tests
+def test_agent():
+    api_key = setup_test_environment()
+    agent = create_planner_agent(api_key)
+    # ... test ...
+```
+
+## Development vs Production
+
+### Development Mode
+```bash
+# .env.development
+DEBUG=1
+OPENROUTER_API_KEY=sk-test-key
+OPENROUTER_BASE_URL=http://localhost:8000
+```
+
+### Production Mode
+```bash
+# .env.production
+OPENROUTER_API_KEY=sk-prod-key
+# DEBUG not set
+```
+
+### Loading Environment-Specific Config
+```python
+import os
+from dotenv import load_dotenv
+
+# Load environment-specific file
+env = os.getenv("ENV", "development")
+dotenv_file = f".env.{env}"
+
+if os.path.exists(dotenv_file):
+    load_dotenv(dotenv_file)
+else:
+    load_dotenv()  # Load default .env
+```
+
+## Debugging
+
+### Enable Debug Output
+```bash
+export DEBUG=1
+uv run nilcode
+```
+
+### In Code
+```python
+import os
+
+DEBUG = os.getenv("DEBUG") is not None
+
+if DEBUG:
+    print(f"Model: {model}")
+    print(f"Temperature: {temperature}")
+    print(f"State: {state}")
+```
+
+### LangSmith Tracing
+```python
+# Set environment variables for tracing
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+os.environ["LANGCHAIN_API_KEY"] = "your-langsmith-key"
+os.environ["LANGCHAIN_PROJECT"] = "nilcode"
+```

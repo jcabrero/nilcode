@@ -1,0 +1,201 @@
+---
+alwaysApply: true
+description: Index of all Cursor rules for NilCode project
+---
+# NilCode Cursor Rules Index
+
+This document provides an overview of all Cursor rules in the `.cursor/rules/` directory.
+
+## Core System Rules (Always Applied)
+
+### project-structure.mdc
+**Always Applied**: Yes  
+**Purpose**: Overview of the multi-agent system structure, package layout, and key modules  
+**Covers**: Package structure, agent overview, state management basics, commands
+
+### environment-setup.mdc
+**Always Applied**: Yes  
+**Purpose**: Environment variables, API keys, LLM configuration, and package management  
+**Covers**: API keys, environment files, LLM setup, UV package manager, running the system
+
+## Component-Specific Rules
+
+### agent-implementation.mdc
+**Applies to**: `src/nilcode/agents/*.py`  
+**Purpose**: Guidelines for implementing agents  
+**Covers**: Agent structure pattern, state management, routing, task handling, tool usage, error handling
+
+### state-management.mdc
+**Applies to**: `src/nilcode/state/*.py`  
+**Purpose**: Guidelines for working with AgentState  
+**Covers**: State structure, required fields, task structure, state updates, common patterns, status transitions
+
+### workflow-routing.mdc
+**Applies to**: `src/nilcode/agents/utils.py`, `src/nilcode/main_agent.py`  
+**Purpose**: Workflow graph structure and agent routing logic  
+**Covers**: Workflow graph, routing logic, conditional edges, execution flow, status tracking
+
+### tools.mdc
+**Applies to**: `src/nilcode/tools/*.py`  
+**Purpose**: Tool implementation patterns  
+**Covers**: File operations, task management, code analysis, tool decorator, return values, error handling
+
+### specialized-agents.mdc
+**Applies to**: `src/nilcode/agents/context_gatherer.py`, `src/nilcode/agents/error_recovery.py`  
+**Purpose**: Guidelines for Context Gatherer and Error Recovery agents  
+**Covers**: Context gathering from codebases, error detection and fixing, workflow integration
+
+### advanced-tools.mdc
+**Applies to**: `src/nilcode/tools/git_tools.py`, `src/nilcode/tools/terminal_tools.py`, `src/nilcode/tools/codebase_tools.py`  
+**Purpose**: Advanced tool usage including git, terminal, and codebase operations  
+**Covers**: Git operations, terminal commands, package installation, testing, linting
+
+## Configuration & Interface Rules
+
+### configuration.mdc
+**Applies to**: `src/nilcode/config.py`, `**/.nilcoderc`, `**/.nilcode.json`  
+**Purpose**: Configuration system usage  
+**Covers**: Config files, accessing configuration, agent settings, LLM settings, workflow settings
+
+### cli-interface.mdc
+**Applies to**: `src/nilcode/cli.py`, `src/nilcode/main_agent.py`  
+**Purpose**: CLI and user interface guidelines  
+**Covers**: Color system, display functions, user input, interactive mode, status display
+
+## Development & Documentation Rules
+
+### testing.mdc
+**Applies to**: `test*.py`, `tests/*.py`  
+**Purpose**: Testing guidelines for agents, tools, and workflows  
+**Covers**: Test structure, agent testing, tool testing, workflow testing, environment setup
+
+### documentation.mdc
+**Applies to**: `*.md`, `docs/**`  
+**Purpose**: Documentation standards and guidelines  
+**Covers**: Documentation structure, docstrings, comments, examples, troubleshooting
+
+### dependencies.mdc
+**Applies to**: `pyproject.toml`, `requirements.txt`, `package.json`, `uv.lock`  
+**Purpose**: Dependency management with UV  
+**Covers**: UV package manager, adding/removing dependencies, version constraints, lock files
+
+## Quick Reference by Task
+
+### Implementing a New Agent
+Read in order:
+1. [agent-implementation.mdc](mdc:.cursor/rules/agent-implementation.mdc)
+2. [state-management.mdc](mdc:.cursor/rules/state-management.mdc)
+3. [workflow-routing.mdc](mdc:.cursor/rules/workflow-routing.mdc)
+4. [tools.mdc](mdc:.cursor/rules/tools.mdc)
+
+### Creating a New Tool
+Read in order:
+1. [tools.mdc](mdc:.cursor/rules/tools.mdc)
+2. [advanced-tools.mdc](mdc:.cursor/rules/advanced-tools.mdc) (if advanced functionality)
+
+### Setting Up Development Environment
+Read in order:
+1. [environment-setup.mdc](mdc:.cursor/rules/environment-setup.mdc)
+2. [dependencies.mdc](mdc:.cursor/rules/dependencies.mdc)
+3. [configuration.mdc](mdc:.cursor/rules/configuration.mdc)
+
+### Writing Tests
+Read in order:
+1. [testing.mdc](mdc:.cursor/rules/testing.mdc)
+2. [state-management.mdc](mdc:.cursor/rules/state-management.mdc)
+
+### Working with CLI
+Read in order:
+1. [cli-interface.mdc](mdc:.cursor/rules/cli-interface.mdc)
+2. [configuration.mdc](mdc:.cursor/rules/configuration.mdc)
+
+### Understanding System Architecture
+Read in order:
+1. [project-structure.mdc](mdc:.cursor/rules/project-structure.mdc)
+2. [workflow-routing.mdc](mdc:.cursor/rules/workflow-routing.mdc)
+3. [state-management.mdc](mdc:.cursor/rules/state-management.mdc)
+4. [ARCHITECTURE.md](mdc:ARCHITECTURE.md)
+
+## File Reference Map
+
+### By File Pattern
+- `src/nilcode/agents/*.py` → agent-implementation.mdc, specialized-agents.mdc
+- `src/nilcode/state/*.py` → state-management.mdc
+- `src/nilcode/tools/*.py` → tools.mdc, advanced-tools.mdc
+- `src/nilcode/config.py` → configuration.mdc
+- `src/nilcode/cli.py` → cli-interface.mdc
+- `src/nilcode/main_agent.py` → workflow-routing.mdc, cli-interface.mdc
+- `test*.py`, `tests/*.py` → testing.mdc
+- `*.md`, `docs/**` → documentation.mdc
+- `pyproject.toml`, `uv.lock` → dependencies.mdc
+
+## Rule Organization Principles
+
+### Always Applied Rules
+These rules are shown for every request:
+- project-structure.mdc
+- environment-setup.mdc
+- index.mdc (this file)
+
+### Glob-Based Rules
+These rules are shown when working with matching files:
+- agent-implementation.mdc → `src/nilcode/agents/*.py`
+- state-management.mdc → `src/nilcode/state/*.py`
+- tools.mdc → `src/nilcode/tools/*.py`
+- And so on...
+
+### Description-Based Rules
+These rules can be manually invoked or fetched by AI when relevant.
+
+## Updating Rules
+
+### When to Update Rules
+- Code patterns change
+- New features are added
+- Best practices evolve
+- Common issues are discovered
+
+### How to Update Rules
+1. Edit the relevant `.mdc` file in `.cursor/rules/`
+2. Update file references using `[filename](mdc:filename)` format
+3. Maintain consistent formatting
+4. Test that rules are being applied correctly
+5. Update this index if you add new rules
+
+### Creating New Rules
+1. Create `.mdc` file in `.cursor/rules/`
+2. Add frontmatter with `alwaysApply`, `description`, or `globs`
+3. Write clear, actionable guidelines
+4. Include examples and patterns
+5. Reference related files
+6. Add entry to this index
+
+## Rule Frontmatter Options
+
+```yaml
+---
+alwaysApply: true  # Show for every request
+---
+
+---
+globs: "*.py,src/**/*.py"  # Show when working with matching files
+---
+
+---
+description: "Guidelines for X"  # Can be fetched by description
+---
+```
+
+## Getting Help
+
+### For Specific Topics
+Use the Quick Reference section above to find relevant rules.
+
+### For General Questions
+Start with:
+1. [project-structure.mdc](mdc:.cursor/rules/project-structure.mdc)
+2. [CLAUDE.md](mdc:CLAUDE.md)
+3. [README.md](mdc:README.md)
+
+### For Implementation Details
+Refer to the actual source files linked in each rule using `mdc:` references.

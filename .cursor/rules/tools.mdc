@@ -1,0 +1,180 @@
+---
+globs: src/nilcode/tools/*.py
+---
+# Tool Implementation Guidelines
+
+Tools in this system are functions decorated with `@tool` that agents can call to perform specific operations. All tools are located in `src/nilcode/tools/`.
+
+## Tool Categories
+
+### File Operations ([file_operations.py](mdc:src/nilcode/tools/file_operations.py))
+- `read_file(file_path: str) -> str`: Read file contents
+- `write_file(file_path: str, content: str) -> str`: Create or overwrite file
+- `edit_file(file_path: str, search_text: str, replacement_text: str) -> str`: Edit existing file
+- `list_files(directory: str) -> str`: List directory contents
+- `create_directory(directory_path: str) -> str`: Create new directory
+
+### Task Management ([task_management.py](mdc:src/nilcode/tools/task_management.py))
+- `create_task(content: str, assigned_to: str, active_form: str) -> str`: Create new task
+- `update_task_status(task_id: str, status: str) -> str`: Update task status
+- `update_task_result(task_id: str, result: str) -> str`: Set task result
+- `get_all_tasks() -> str`: Get all tasks as JSON
+- `get_pending_tasks() -> str`: Get pending tasks only
+
+### Code Analysis ([code_analysis.py](mdc:src/nilcode/tools/code_analysis.py))
+- `analyze_python_syntax(file_path: str) -> str`: Validate Python syntax
+- `count_functions(file_path: str) -> str`: Count functions in Python file
+- `check_imports(file_path: str) -> str`: List imports in Python file
+- `find_todos_in_code(file_path: str) -> str`: Find TODO comments
+- `check_code_complexity(file_path: str) -> str`: Analyze code complexity
+- `validate_code_style(file_path: str) -> str`: Check PEP 8 compliance
+
+## Tool Implementation Pattern
+
+```python
+from langchain_core.tools import tool
+from typing import Optional
+
+@tool
+def tool_name(param1: str, param2: Optional[int] = None) -> str:
+    """
+    Brief description of what the tool does.
+    
+    Args:
+        param1: Description of parameter 1
+        param2: Optional description of parameter 2
+        
+    Returns:
+        Description of return value
+    """
+    try:
+        # Tool implementation
+        result = perform_operation(param1, param2)
+        return f"Success: {result}"
+    except Exception as e:
+        return f"Error: {str(e)}"
+```
+
+## Critical Rules
+
+### Tool Decorator
+- Always use `@tool` decorator from `langchain_core.tools`
+- Docstring is REQUIRED - it's used by LLM to understand the tool
+- Include parameter descriptions in docstring
+- First line should be a concise summary
+
+### Type Hints
+- All parameters must have type hints
+- Return type must always be `str` (tools communicate with LLM via strings)
+- Use `Optional[Type]` for optional parameters
+- Import types from `typing`
+
+### Return Values
+- Always return strings (even for errors)
+- Use consistent format: `"Success: <details>"` or `"Error: <message>"`
+- For complex data, return JSON strings
+- Include helpful context in return messages
+
+### Error Handling
+```python
+try:
+    # Tool logic
+    return f"Success: {result}"
+except FileNotFoundError as e:
+    return f"Error: File not found - {str(e)}"
+except Exception as e:
+    return f"Error: {str(e)}"
+```
+
+## File Operations Guidelines
+
+### Path Handling
+- Support both absolute and relative paths
+- Default to project workspace for relative paths
+- Validate paths before operations
+- Create parent directories if needed for writes
+
+### File Reading
+```python
+@tool
+def read_file(file_path: str) -> str:
+    """Read and return the contents of a file."""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return f"Success: Read {len(content)} bytes from {file_path}\n\n{content}"
+    except Exception as e:
+        return f"Error: {str(e)}"
+```
+
+### File Writing
+- Always use UTF-8 encoding
+- Create parent directories automatically
+- Return confirmation with file path
+- Handle existing file overwrites gracefully
+
+### File Editing
+- Verify search_text exists before replacing
+- Return clear error if search_text not found
+- Support both full and partial text matching
+- Confirm successful edits
+
+## Task Management Guidelines
+
+### Task Storage
+- Use module-level storage: `_task_storage: List[Task] = []`
+- Provide `set_task_storage()` for bulk updates
+- Generate UUIDs for task IDs
+- Maintain task ordering
+
+### Task Status
+- Valid statuses: "pending", "in_progress", "completed"
+- Validate status before updates
+- Return updated task info after modifications
+
+### Task Queries
+- Return JSON strings for structured data
+- Use `json.dumps()` with proper formatting
+- Include all relevant task fields
+- Filter efficiently for get_pending_tasks
+
+## Code Analysis Guidelines
+
+### Python AST Usage
+- Use `ast.parse()` for syntax validation
+- Use `ast.walk()` for node traversal
+- Handle syntax errors gracefully
+- Provide specific error locations
+
+### Analysis Output
+- Return human-readable summaries
+- Include counts, lists, or statistics
+- Format multi-line output clearly
+- Highlight issues or concerns
+
+### Static Analysis
+- Use built-in Python libraries (ast, re)
+- Don't execute untrusted code
+- Parse only, never eval
+- Return safe string representations
+
+## Testing Tools
+When creating tools, ensure they:
+1. Have complete docstrings
+2. Handle all error cases
+3. Return consistent string formats
+4. Work with absolute and relative paths
+5. Are importable and usable by agents
+
+## Tool Registration
+Tools are bound to agents in the agent creation functions:
+
+```python
+from nilcode.tools.file_operations import read_file, write_file
+from nilcode.tools.task_management import update_task_status
+
+tools = [read_file, write_file, update_task_status]
+agent_with_tools = model.bind_tools(tools)
+```
+
+Only bind relevant tools to each agent to reduce token usage and improve focus.

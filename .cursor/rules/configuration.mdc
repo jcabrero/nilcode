@@ -1,0 +1,289 @@
+---
+globs: src/nilcode/config.py,**/.nilcoderc,**/.nilcode.json
+---
+# Configuration Management Guidelines
+
+## NilCodeConfig System
+
+Configuration is managed through [config.py](mdc:src/nilcode/config.py) which provides a flexible JSON-based config system.
+
+## Configuration Files
+
+### Supported File Names
+- `.nilcoderc` (preferred)
+- `.nilcode.json`
+- `nilcode.json`
+
+### Discovery Order
+1. Current directory
+2. Parent directories (up to 3 levels)
+3. Falls back to `DEFAULT_CONFIG` if none found
+
+## Using Configuration
+
+### Accessing Configuration
+```python
+from nilcode.config import get_config, load_config
+
+# Get global singleton
+config = get_config()
+
+# Or load specific config file
+config = load_config('/path/to/.nilcoderc')
+```
+
+### Reading Values
+```python
+# Simple access
+project_name = config.get('project_name')
+
+# Dot notation for nested values
+temperature = config.get('agent_settings.planner.temperature')
+model = config.get('llm_settings.model')
+
+# With default value
+max_tasks = config.get('agent_settings.planner.max_tasks', 10)
+
+# Get agent-specific settings
+planner_config = config.get_agent_settings('planner')
+```
+
+### Modifying Configuration
+```python
+# Set value using dot notation
+config.set('agent_settings.planner.temperature', 0.4)
+
+# Save to file
+config.save_to_file()  # Uses current config_file
+config.save_to_file('.nilcoderc')  # Save to specific file
+```
+
+## Configuration Structure
+
+### Agent Settings
+```json
+{
+  "agent_settings": {
+    "planner": {
+      "temperature": 0.3,
+      "max_tasks": 20
+    },
+    "context_gatherer": {
+      "temperature": 0.2,
+      "max_files_to_read": 50,
+      "auto_gather": true
+    },
+    "software_architect": {
+      "temperature": 0.2
+    },
+    "frontend_developer": {
+      "temperature": 0.2,
+      "preferred_frameworks": ["react", "vue"]
+    },
+    "backend_developer": {
+      "temperature": 0.2,
+      "preferred_frameworks": ["fastapi", "flask"]
+    },
+    "tester": {
+      "temperature": 0.1,
+      "auto_run_tests": true
+    },
+    "error_recovery": {
+      "temperature": 0.1,
+      "max_iterations": 5,
+      "auto_fix": true
+    }
+  }
+}
+```
+
+### LLM Settings
+```json
+{
+  "llm_settings": {
+    "model": "openai/gpt-oss-20b",
+    "base_url": "https://openrouter.ai/api/v1",
+    "max_tokens": 4096,
+    "timeout": 60
+  }
+}
+```
+
+### Workflow Settings
+```json
+{
+  "workflow_settings": {
+    "enable_context_gathering": true,
+    "enable_error_recovery": true,
+    "enable_auto_testing": true,
+    "enable_auto_linting": false,
+    "max_workflow_iterations": 20
+  }
+}
+```
+
+### File Ignore Patterns
+```json
+{
+  "ignore_patterns": [
+    "node_modules/**",
+    ".git/**",
+    "__pycache__/**",
+    "*.pyc",
+    ".venv/**",
+    "dist/**",
+    "build/**"
+  ]
+}
+```
+
+## Using Config in Agents
+
+### Agent Creation with Config
+```python
+from nilcode.config import get_config
+
+def create_planner_agent(api_key: str, base_url: str = None):
+    """Create planner agent with config."""
+    config = get_config()
+    
+    # Get agent-specific settings
+    agent_config = config.get_agent_settings('planner')
+    
+    # Use config values
+    model_kwargs = {
+        "model": config.get('llm_settings.model', 'openai/gpt-oss-20b'),
+        "api_key": api_key,
+        "temperature": agent_config.get('temperature', 0.3),
+        "max_tokens": config.get('llm_settings.max_tokens', 4096),
+        "timeout": config.get('llm_settings.timeout', 60)
+    }
+    
+    if base_url or config.get('llm_settings.base_url'):
+        model_kwargs["base_url"] = base_url or config.get('llm_settings.base_url')
+    
+    model = ChatOpenAI(**model_kwargs)
+    return PlannerAgent(model, tools)
+```
+
+### Checking File Ignore Patterns
+```python
+config = get_config()
+
+# Check if file should be ignored
+if config.should_ignore_file('node_modules/package.json'):
+    # Skip this file
+    pass
+
+# Get all patterns
+patterns = config.get_ignore_patterns()
+```
+
+## Configuration Best Practices
+
+### Default Values
+- Always provide sensible defaults
+- Use `config.get(key, default_value)` pattern
+- Don't fail if config is missing
+
+### Config File Creation
+```python
+from nilcode.config import NilCodeConfig
+
+# Create default config for new project
+config = NilCodeConfig()
+config.create_default_config('.nilcoderc')
+```
+
+### Deep Merging
+- User config is deep-merged with defaults
+- Partial configs are supported
+- Only specify values you want to override
+
+### Environment-Specific Settings
+```json
+{
+  "project_name": "my-project",
+  "working_directory": ".",
+  "agent_settings": {
+    "planner": {
+      "temperature": 0.5
+    }
+  }
+}
+```
+
+## Output Settings
+
+### Controlling Verbosity
+```python
+config = get_config()
+
+verbose = config.get('output_settings.verbose', True)
+show_streaming = config.get('output_settings.show_streaming', True)
+show_tool_calls = config.get('output_settings.show_tool_calls', True)
+color_output = config.get('output_settings.color_output', True)
+
+if verbose:
+    print_agent_status(agent_name, "running")
+```
+
+## File Size Limits
+```python
+config = get_config()
+max_file_size = config.get('file_settings.max_file_size', 1048576)  # 1MB
+
+if file.stat().st_size > max_file_size:
+    return f"Error: File exceeds maximum size of {max_file_size} bytes"
+```
+
+## Creating Custom Configs
+
+### Project-Specific Config
+```json
+{
+  "project_name": "my-web-app",
+  "agent_settings": {
+    "frontend_developer": {
+      "preferred_frameworks": ["react", "tailwind"]
+    },
+    "backend_developer": {
+      "preferred_frameworks": ["fastapi"]
+    }
+  },
+  "workflow_settings": {
+    "enable_auto_testing": true,
+    "enable_auto_linting": true
+  },
+  "ignore_patterns": [
+    "node_modules/**",
+    ".git/**",
+    "dist/**",
+    "*.log"
+  ]
+}
+```
+
+## Error Handling
+```python
+try:
+    config = load_config('custom.json')
+except Exception as e:
+    print(f"Warning: Failed to load config: {e}")
+    config = NilCodeConfig()  # Use defaults
+```
+
+## Testing with Config
+```python
+def test_with_custom_config():
+    """Test agent with custom configuration."""
+    from nilcode.config import NilCodeConfig
+    
+    # Create test config
+    test_config = NilCodeConfig()
+    test_config.set('agent_settings.planner.temperature', 0.1)
+    
+    # Use in test
+    agent = create_planner_agent("test_key")
+    # ...
+```

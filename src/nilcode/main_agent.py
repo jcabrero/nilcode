@@ -22,6 +22,8 @@ if __name__ == "__main__" and __package__ is None:
     from .agents.frontend_developer import create_frontend_developer_agent
     from .agents.backend_developer import create_backend_developer_agent
     from .agents.tester import create_tester_agent
+    from .agents.context_gatherer import create_context_gatherer_agent
+    from .agents.error_recovery import create_error_recovery_agent
 else:
     from .state.agent_state import AgentState, create_initial_state
     from .agents.orchestrator import create_orchestrator_agent
@@ -30,6 +32,8 @@ else:
     from .agents.frontend_developer import create_frontend_developer_agent
     from .agents.backend_developer import create_backend_developer_agent
     from .agents.tester import create_tester_agent
+    from .agents.context_gatherer import create_context_gatherer_agent
+    from .agents.error_recovery import create_error_recovery_agent
 
 
 class MultiAgentSystem:
@@ -51,10 +55,12 @@ class MultiAgentSystem:
         # Create all agents
         self.orchestrator = create_orchestrator_agent(api_key, base_url)
         self.planner = create_planner_agent(api_key, base_url)
+        self.context_gatherer = create_context_gatherer_agent(api_key, base_url)
         self.software_architect = create_software_architect_agent(api_key, base_url)
         self.frontend_developer = create_frontend_developer_agent(api_key, base_url)
         self.backend_developer = create_backend_developer_agent(api_key, base_url)
         self.tester = create_tester_agent(api_key, base_url)
+        self.error_recovery = create_error_recovery_agent(api_key, base_url)
 
         # Build the workflow graph
         self.workflow = self._build_workflow()
@@ -72,10 +78,12 @@ class MultiAgentSystem:
         # Add all agent nodes
         workflow.add_node("orchestrator", self.orchestrator)
         workflow.add_node("planner", self.planner)
+        workflow.add_node("context_gatherer", self.context_gatherer)
         workflow.add_node("software_architect", self.software_architect)
         workflow.add_node("frontend_developer", self.frontend_developer)
         workflow.add_node("backend_developer", self.backend_developer)
         workflow.add_node("tester", self.tester)
+        workflow.add_node("error_recovery", self.error_recovery)
 
         # Define the routing logic
         def route_next(state: AgentState) -> str:
@@ -90,84 +98,32 @@ class MultiAgentSystem:
         # Set entry point
         workflow.set_entry_point("planner")
 
+        # Define all possible agent transitions
+        all_agents = {
+            "context_gatherer": "context_gatherer",
+            "software_architect": "software_architect",
+            "frontend_developer": "frontend_developer",
+            "backend_developer": "backend_developer",
+            "tester": "tester",
+            "error_recovery": "error_recovery",
+            "orchestrator": "orchestrator",
+            "end": END
+        }
+
         # Add conditional edges from each agent
-        workflow.add_conditional_edges(
-            "planner",
-            route_next,
-            {
-                "software_architect": "software_architect",
-                "frontend_developer": "frontend_developer",
-                "backend_developer": "backend_developer",
-                "tester": "tester",
-                "orchestrator": "orchestrator",
-                "end": END
-            }
-        )
-
-        workflow.add_conditional_edges(
-            "software_architect",
-            route_next,
-            {
-                "software_architect": "software_architect",
-                "frontend_developer": "frontend_developer",
-                "backend_developer": "backend_developer",
-                "tester": "tester",
-                "orchestrator": "orchestrator",
-                "end": END
-            }
-        )
-
-        workflow.add_conditional_edges(
-            "frontend_developer",
-            route_next,
-            {
-                "software_architect": "software_architect",
-                "frontend_developer": "frontend_developer",
-                "backend_developer": "backend_developer",
-                "tester": "tester",
-                "orchestrator": "orchestrator",
-                "end": END
-            }
-        )
-
-        workflow.add_conditional_edges(
-            "backend_developer",
-            route_next,
-            {
-                "software_architect": "software_architect",
-                "frontend_developer": "frontend_developer",
-                "backend_developer": "backend_developer",
-                "tester": "tester",
-                "orchestrator": "orchestrator",
-                "end": END
-            }
-        )
-
-        workflow.add_conditional_edges(
-            "tester",
-            route_next,
-            {
-                "software_architect": "software_architect",
-                "frontend_developer": "frontend_developer",
-                "backend_developer": "backend_developer",
-                "tester": "tester",
-                "orchestrator": "orchestrator",
-                "end": END
-            }
-        )
-
+        workflow.add_conditional_edges("planner", route_next, all_agents)
+        workflow.add_conditional_edges("context_gatherer", route_next, all_agents)
+        workflow.add_conditional_edges("software_architect", route_next, all_agents)
+        workflow.add_conditional_edges("frontend_developer", route_next, all_agents)
+        workflow.add_conditional_edges("backend_developer", route_next, all_agents)
+        workflow.add_conditional_edges("tester", route_next, all_agents)
+        workflow.add_conditional_edges("error_recovery", route_next, all_agents)
+        
+        # Orchestrator can route back or end
         workflow.add_conditional_edges(
             "orchestrator",
             route_next,
-            {
-                "software_architect": "software_architect",
-                "planner": "planner",
-                "frontend_developer": "frontend_developer",
-                "backend_developer": "backend_developer",
-                "tester": "tester",
-                "orchestrator": "orchestrator",
-                "end": END
-            }
+            {**all_agents, "planner": "planner"}
         )
 
         # Compile the workflow
@@ -259,41 +215,28 @@ def main():
     from dotenv import load_dotenv
     load_dotenv()
 
-    print("Multi-Agent Development System")
-    print("Type 'exit' or 'quit' to end the session")
-    print("-" * 70)
+    # Import the enhanced CLI
+    try:
+        from .cli import interactive_mode, run_single_command, print_banner, print_error
+    except ImportError:
+        from cli import interactive_mode, run_single_command, print_banner, print_error
 
     # Create the agent system
     try:
         agent_system = create_agent_system()
     except ValueError as e:
-        print(f"Error: {e}")
-        return
+        print_error(str(e))
+        return 1
 
-    while True:
-        user_input = input("\nWhat would you like to build? ").strip()
-
-        if user_input.lower() in ['exit', 'quit']:
-            print("Goodbye!")
-            break
-
-        if not user_input:
-            continue
-
-        try:
-            # Run the agent system
-            final_state = agent_system.run(user_input)
-
-            # Display summary
-            if final_state.get("overall_status") == "completed":
-                print("\n✅ Task completed successfully!")
-            else:
-                print("\n⚠️  Task completed with warnings")
-
-        except Exception as e:
-            print(f"\n❌ Error: {e}")
-            import traceback
-            traceback.print_exc()
+    # Check for command-line arguments
+    if len(sys.argv) > 1:
+        # Run single command mode
+        command = " ".join(sys.argv[1:])
+        return run_single_command(agent_system, command)
+    else:
+        # Run interactive mode
+        interactive_mode(agent_system)
+        return 0
 
 
 if __name__ == "__main__":

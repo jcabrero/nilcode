@@ -1,0 +1,288 @@
+---
+globs: test*.py,tests/*.py
+---
+# Testing Guidelines
+
+## Test Structure
+Tests are located in the root directory (e.g., [test_planner.py](mdc:test_planner.py)) or in the `tests/` directory.
+
+## Testing Agents
+
+### Basic Agent Test Pattern
+```python
+import os
+from dotenv import load_dotenv
+from nilcode.state.agent_state import create_initial_state
+from nilcode.agents.planner import create_planner_agent
+
+def test_planner():
+    """Test the planner agent."""
+    load_dotenv()
+    
+    # Get API credentials
+    api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
+    base_url = os.getenv("OPENROUTER_BASE_URL")
+    
+    # Create agent
+    agent = create_planner_agent(api_key, base_url)
+    
+    # Create initial state
+    state = create_initial_state("Create a login page with authentication")
+    
+    # Execute agent
+    result = agent(state)
+    
+    # Assertions
+    assert "tasks" in result
+    assert len(result["tasks"]) > 0
+    assert result["next_agent"] in ["software_architect", "frontend_developer", "backend_developer", "tester"]
+    assert result["overall_status"] != "failed"
+    
+    # Print results for inspection
+    print(f"\nGenerated {len(result['tasks'])} tasks:")
+    for task in result["tasks"]:
+        print(f"  - {task['content']} → {task['assignedTo']}")
+
+if __name__ == "__main__":
+    test_planner()
+```
+
+## Testing Tools
+
+### File Operation Tests
+```python
+from nilcode.tools.file_operations import write_file, read_file, edit_file
+
+def test_file_operations():
+    """Test file operation tools."""
+    # Write file
+    result = write_file("test_output.txt", "Hello, World!")
+    assert "Success" in result
+    
+    # Read file
+    content = read_file("test_output.txt")
+    assert "Hello, World!" in content
+    
+    # Edit file
+    result = edit_file("test_output.txt", "World", "Universe")
+    assert "Success" in result
+    
+    # Verify edit
+    content = read_file("test_output.txt")
+    assert "Universe" in content
+    
+    # Cleanup
+    import os
+    os.remove("test_output.txt")
+```
+
+### Task Management Tests
+```python
+from nilcode.tools.task_management import (
+    create_task, 
+    update_task_status, 
+    get_all_tasks,
+    set_task_storage
+)
+import json
+
+def test_task_management():
+    """Test task management tools."""
+    # Reset storage
+    set_task_storage([])
+    
+    # Create task
+    result = create_task(
+        content="Test task",
+        assigned_to="tester",
+        active_form="Testing task"
+    )
+    assert "Success" in result
+    
+    # Get all tasks
+    tasks_json = get_all_tasks()
+    tasks = json.loads(tasks_json)
+    assert len(tasks) == 1
+    
+    task_id = tasks[0]["id"]
+    
+    # Update status
+    result = update_task_status(task_id, "completed")
+    assert "Success" in result
+    
+    # Verify update
+    tasks_json = get_all_tasks()
+    tasks = json.loads(tasks_json)
+    assert tasks[0]["status"] == "completed"
+```
+
+### Code Analysis Tests
+```python
+from nilcode.tools.code_analysis import (
+    analyze_python_syntax,
+    count_functions,
+    check_imports
+)
+
+def test_code_analysis():
+    """Test code analysis tools."""
+    # Create test file
+    test_code = '''
+import os
+from typing import List
+
+def hello():
+    return "Hello"
+
+def world():
+    return "World"
+'''
+    
+    with open("test_code.py", "w") as f:
+        f.write(test_code)
+    
+    # Test syntax analysis
+    result = analyze_python_syntax("test_code.py")
+    assert "valid" in result.lower() or "success" in result.lower()
+    
+    # Test function counting
+    result = count_functions("test_code.py")
+    assert "2" in result  # Should find 2 functions
+    
+    # Test import checking
+    result = check_imports("test_code.py")
+    assert "os" in result
+    assert "typing" in result
+    
+    # Cleanup
+    import os
+    os.remove("test_code.py")
+```
+
+## Testing Workflows
+
+### Full Workflow Test
+```python
+from langgraph.graph import StateGraph, END
+from nilcode.state.agent_state import create_initial_state
+from nilcode.agents.planner import create_planner_agent
+from nilcode.agents.orchestrator import create_orchestrator_agent
+
+def test_workflow():
+    """Test complete agent workflow."""
+    load_dotenv()
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    base_url = os.getenv("OPENROUTER_BASE_URL")
+    
+    # Create agents
+    planner = create_planner_agent(api_key, base_url)
+    orchestrator = create_orchestrator_agent(api_key, base_url)
+    
+    # Build workflow
+    workflow = StateGraph(AgentState)
+    workflow.add_node("planner", planner)
+    workflow.add_node("orchestrator", orchestrator)
+    workflow.set_entry_point("planner")
+    workflow.add_edge("planner", "orchestrator")
+    workflow.add_edge("orchestrator", END)
+    
+    app = workflow.compile()
+    
+    # Execute
+    state = create_initial_state("Create a simple calculator")
+    result = app.invoke(state)
+    
+    # Verify
+    assert result["overall_status"] in ["completed", "failed"]
+    assert len(result["tasks"]) > 0
+    assert "messages" in result
+```
+
+## Test Requirements
+
+### Environment Setup
+```python
+# Always load environment variables
+from dotenv import load_dotenv
+load_dotenv()
+
+# Check for required API keys
+api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
+if not api_key:
+    raise ValueError("Missing API key in environment")
+```
+
+### Assertions to Include
+1. **State fields exist**: Check for required fields in results
+2. **Valid values**: Verify agent names, statuses, etc.
+3. **Non-empty results**: Ensure tasks/messages were created
+4. **Error handling**: Test failure cases
+5. **Type checking**: Verify correct types returned
+
+### Cleanup
+Always clean up test artifacts:
+```python
+import os
+import shutil
+
+def cleanup():
+    """Remove test files and directories."""
+    if os.path.exists("test_output/"):
+        shutil.rmtree("test_output/")
+    if os.path.exists("test_file.txt"):
+        os.remove("test_file.txt")
+```
+
+## Running Tests
+
+### Single Test
+```bash
+uv run python test_planner.py
+```
+
+### All Tests
+```bash
+uv run python -m pytest tests/
+```
+
+### With Coverage
+```bash
+uv run python -m pytest tests/ --cov=nilcode --cov-report=html
+```
+
+## Test Output
+Tests should print useful information:
+```python
+def test_with_output():
+    print("\n" + "="*50)
+    print("Testing Planner Agent")
+    print("="*50)
+    
+    # Run test
+    result = agent(state)
+    
+    print(f"\n✅ Test passed!")
+    print(f"Generated {len(result['tasks'])} tasks")
+    print(f"Next agent: {result['next_agent']}")
+    print(f"Status: {result['overall_status']}")
+```
+
+## Mock Testing
+For tests that don't need real LLM calls:
+```python
+from unittest.mock import Mock, patch
+
+def test_agent_with_mock():
+    """Test agent with mocked LLM."""
+    mock_response = Mock()
+    mock_response.content = '{"tasks": [], "summary": "test"}'
+    
+    with patch('langchain_openai.ChatOpenAI') as mock_llm:
+        mock_llm.return_value.invoke.return_value = mock_response
+        
+        # Create and test agent
+        agent = create_planner_agent("fake_key")
+        result = agent(create_initial_state("test"))
+        
+        assert result is not None
+```

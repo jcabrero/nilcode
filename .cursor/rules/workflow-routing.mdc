@@ -1,0 +1,259 @@
+---
+globs: src/nilcode/agents/utils.py,src/nilcode/main_agent.py
+---
+# Workflow Routing & Execution Guidelines
+
+## Agent Workflow Overview
+The system uses LangGraph's StateGraph to create a workflow where agents execute sequentially based on routing decisions stored in the `next_agent` state field.
+
+## Workflow Graph Structure
+
+```
+START → planner → [conditional routing] → END
+                       ↓
+        ┌──────────────┴──────────────┐
+        │                              │
+software_architect          ┌──────────┘
+        │                   │
+        ↓                   │
+frontend_developer ←────────┤
+        │                   │
+        ↓                   │
+backend_developer ←─────────┤
+        │                   │
+        ↓                   │
+    tester ←────────────────┘
+        │
+        ↓
+  orchestrator → END
+```
+
+## Routing Logic ([utils.py](mdc:src/nilcode/agents/utils.py))
+
+### determine_next_agent(tasks: List[Task]) -> str
+This function implements the core routing logic:
+
+```python
+def determine_next_agent(tasks: List[Task]) -> str:
+    """
+    Determine which agent should execute next based on task states.
+    
+    Priority order:
+    1. software_architect tasks (if any pending)
+    2. frontend_developer tasks (if any pending)
+    3. backend_developer tasks (if any pending)
+    4. tester tasks (if any pending)
+    5. orchestrator (if all tasks completed)
+    
+    Returns:
+        Agent name to execute next
+    """
+```
+
+### Agent Priority Order
+1. **software_architect**: Must run first to establish project structure
+2. **frontend_developer**: UI components after architecture
+3. **backend_developer**: API/server logic after or alongside frontend
+4. **tester**: Validation after implementation
+5. **orchestrator**: Final aggregation and summary
+
+### Task-Based Routing
+```python
+# Find next pending task by priority
+for agent_name in ["software_architect", "frontend_developer", "backend_developer", "tester"]:
+    pending_tasks = [t for t in tasks if t["assignedTo"] == agent_name and t["status"] == "pending"]
+    if pending_tasks:
+        return agent_name
+
+# All tasks complete
+return "orchestrator"
+```
+
+## Conditional Edge Function
+
+```python
+def route_agent(state: AgentState) -> str:
+    """
+    Route to next agent based on state.next_agent field.
+    
+    This function is used as the conditional edge in the graph.
+    """
+    next_agent = state.get("next_agent", "orchestrator")
+    
+    # Handle error state
+    if state.get("overall_status") == "failed":
+        return "orchestrator"
+    
+    # Handle completion
+    if state.get("overall_status") == "completed":
+        return END
+    
+    return next_agent
+```
+
+## Graph Construction ([main_agent.py](mdc:src/nilcode/main_agent.py))
+
+### Building the StateGraph
+```python
+from langgraph.graph import StateGraph, END
+from nilcode.state.agent_state import AgentState
+
+# Create graph
+workflow = StateGraph(AgentState)
+
+# Add nodes (agents)
+workflow.add_node("planner", planner_agent)
+workflow.add_node("software_architect", architect_agent)
+workflow.add_node("frontend_developer", frontend_agent)
+workflow.add_node("backend_developer", backend_agent)
+workflow.add_node("tester", tester_agent)
+workflow.add_node("orchestrator", orchestrator_agent)
+
+# Set entry point
+workflow.set_entry_point("planner")
+
+# Add conditional edges
+workflow.add_conditional_edges(
+    "planner",
+    route_agent,
+    {
+        "software_architect": "software_architect",
+        "frontend_developer": "frontend_developer",
+        "backend_developer": "backend_developer",
+        "tester": "tester",
+        "orchestrator": "orchestrator"
+    }
+)
+
+# Each agent can route to any other agent
+for agent_name in ["software_architect", "frontend_developer", "backend_developer", "tester"]:
+    workflow.add_conditional_edges(
+        agent_name,
+        route_agent,
+        {
+            "software_architect": "software_architect",
+            "frontend_developer": "frontend_developer",
+            "backend_developer": "backend_developer",
+            "tester": "tester",
+            "orchestrator": "orchestrator"
+        }
+    )
+
+# Orchestrator always ends
+workflow.add_edge("orchestrator", END)
+
+# Compile
+app = workflow.compile()
+```
+
+## Execution Flow
+
+### Invoking the Workflow
+```python
+from nilcode.state.agent_state import create_initial_state
+
+# Create initial state
+initial_state = create_initial_state(user_request="Build a todo app")
+
+# Execute workflow
+result = app.invoke(initial_state)
+
+# Access results
+print(result["plan"])
+print(result["modified_files"])
+print(result["overall_status"])
+```
+
+### Streaming Events
+```python
+for event in app.stream(initial_state):
+    agent_name = list(event.keys())[0]
+    print(f"\n{'='*50}")
+    print(f"Agent: {agent_name}")
+    print(f"{'='*50}")
+```
+
+## Routing Best Practices
+
+### In Agents
+1. **Always set next_agent**: Every agent must set `next_agent` in return dict
+2. **Use determine_next_agent()**: Don't hardcode routing logic
+3. **Handle completion**: Set `next_agent = "orchestrator"` when your work is done
+4. **Error handling**: Route to orchestrator on errors with `overall_status = "failed"`
+
+### Agent Return Pattern
+```python
+def __call__(self, state: AgentState) -> Dict[str, Any]:
+    try:
+        # Do work...
+        
+        # Determine next step
+        next_agent = determine_next_agent(state["tasks"])
+        
+        return {
+            "next_agent": next_agent,
+            "overall_status": "implementing",  # or appropriate status
+            # other updates...
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "next_agent": "orchestrator",
+            "overall_status": "failed"
+        }
+```
+
+### Special Cases
+
+#### Planner Always First
+- Entry point is always "planner"
+- Planner creates tasks and routes to first agent
+- Never skip planner
+
+#### Orchestrator Always Last
+- Orchestrator aggregates and summarizes
+- Always routes to END
+- Never skip orchestrator
+
+#### Looping Back
+Agents can loop back to themselves or previous agents if needed:
+```python
+# Frontend needs more work
+if more_frontend_tasks:
+    return {"next_agent": "frontend_developer"}
+```
+
+## Status Tracking
+
+### Overall Status Values
+- `"planning"`: Planner is working
+- `"architecting"`: Software architect is setting up structure
+- `"implementing"`: Developer agents are coding
+- `"testing"`: Tester is validating
+- `"completed"`: All work done successfully
+- `"failed"`: An error occurred
+
+### Status Updates
+Each agent should update `overall_status` appropriately:
+```python
+status_by_agent = {
+    "planner": "planning",
+    "software_architect": "architecting",
+    "frontend_developer": "implementing",
+    "backend_developer": "implementing",
+    "tester": "testing",
+    "orchestrator": "completed"  # or "failed"
+}
+```
+
+## Testing Workflows
+```python
+# Test single agent
+state = create_initial_state("test request")
+result = planner_agent(state)
+assert result["next_agent"] in ["software_architect", "frontend_developer", ...]
+
+# Test full workflow
+final_state = app.invoke(initial_state)
+assert final_state["overall_status"] in ["completed", "failed"]
+```

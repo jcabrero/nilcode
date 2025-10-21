@@ -1,50 +1,84 @@
-# Multi-Agent Development System
+# NilCode v2.0 - AI Development Assistant
 
-A sophisticated LangChain-based multi-agent system that mimics Claude Code and GitHub Codex functionality. This system uses specialized AI agents working together to handle software development tasks from planning to implementation to testing.
+A sophisticated multi-agent AI system that rivals Claude Code, built with LangChain and LangGraph. NilCode uses specialized AI agents working together to understand codebases, implement features, fix errors, and validate results - all autonomously.
+
+## 🚀 What's New in v2.0
+
+**Major Enhancements:**
+- ✅ **Semantic Code Understanding** - Find definitions, usages, and analyze project structure
+- ✅ **Intelligent Context Gathering** - Understands existing codebases before making changes
+- ✅ **Terminal Execution** - Run tests, install packages, execute commands
+- ✅ **Git Integration** - Check status, diffs, and history
+- ✅ **Error Recovery** - Automatically detects and fixes errors with self-correction
+- ✅ **Enhanced CLI** - Beautiful interface with streaming updates and progress
+- ✅ **Project Configuration** - Customize behavior via `.nilcoderc`
+- ✅ **8 Specialized Agents** - Context Gatherer and Error Recovery agents added
+
+See [IMPROVEMENTS.md](IMPROVEMENTS.md) for detailed documentation of all enhancements.
 
 ## Features
 
-- **Multi-Agent Architecture**: Specialized agents for planning, architecture, implementation, and validation
-- **Intelligent Planning**: Automatic task breakdown and prioritization
-- **Full-Stack Development**: Support for both frontend and backend code generation
-- **Code Validation**: Automated testing and quality checks
+- **Multi-Agent Architecture**: 8 specialized agents for different development tasks
+- **Codebase Intelligence**: Semantic search, definition finding, and project analysis
+- **Autonomous Development**: From planning to implementation to testing to error fixing
+- **Full-Stack Support**: Frontend (React, Vue) and backend (Python, Node.js) code generation
+- **Self-Correction**: Automatic error detection and fixing
+- **Test Execution**: Run tests and validate code automatically
+- **Git Awareness**: Understands version control state
 - **LangGraph Orchestration**: Sophisticated state management and agent coordination
 
 ## Architecture
 
-The system consists of six specialized agents:
+The system consists of **8 specialized agents** working together:
 
 ### 1. Planner Agent
 - Analyzes user requests
-- Creates detailed task breakdowns
+- Creates detailed task breakdowns in JSON format
 - Assigns tasks to appropriate agents
-- Manages todo list
+- Manages todo list and priorities
 
-### 2. Software Architect Agent
+### 2. Context Gatherer Agent ⭐ NEW
+- Analyzes existing codebases before changes
+- Finds relevant files and code
+- Understands project structure and patterns
+- Provides context to other agents
+- Uses semantic search and code analysis
+
+### 3. Software Architect Agent
 - Establishes repository/file structure
 - Creates shared configuration and boilerplate
 - Documents architectural decisions
-- Keeps task storage aligned across agents
+- Sets up project scaffolding
 
-### 3. Frontend Developer Agent
+### 4. Frontend Developer Agent
 - Writes HTML, CSS, JavaScript, TypeScript
 - Creates React/Vue components
 - Implements UI features
 - Follows frontend best practices
+- Uses context from existing code
 
-### 4. Backend Developer Agent
+### 5. Backend Developer Agent
 - Writes Python (FastAPI, Flask, Django)
 - Creates Node.js/Express services
 - Implements API endpoints
 - Handles database operations
+- Integrates with existing backend code
 
-### 5. Tester & Validator Agent
+### 6. Tester & Validator Agent
 - Validates code syntax and style
 - Writes unit tests
+- Executes tests automatically
 - Performs code analysis
 - Provides quality feedback
 
-### 6. Orchestrator Agent
+### 7. Error Recovery Agent ⭐ NEW
+- Monitors for errors in code and tests
+- Analyzes error messages
+- Proposes and implements fixes
+- Retries failed operations
+- Self-corrects with iterative refinement
+
+### 8. Orchestrator Agent
 - Coordinates workflow between agents
 - Routes tasks appropriately
 - Aggregates results
@@ -207,21 +241,45 @@ a2a_testagent/
 
 ## Agent Tools
 
-### File Operations
+### File Operations (`file_operations.py`)
 - `read_file`: Read file contents
 - `write_file`: Create or overwrite files
-- `edit_file`: Modify existing files
+- `edit_file`: Modify existing files with search/replace
 - `list_files`: List directory contents
 - `create_directory`: Create directories
 
-### Task Management
+### Codebase Understanding (`codebase_tools.py`) ⭐ NEW
+- `find_definition`: Find where functions/classes are defined
+- `find_usages`: See where code is used
+- `analyze_project_structure`: Get project overview
+- `list_files_recursively`: Smart file discovery
+- `search_code_content`: Regex-powered code search
+
+### Terminal Execution (`terminal_tools.py`) ⭐ NEW
+- `run_command`: Execute shell commands
+- `run_python_script`: Run Python scripts
+- `install_package`: Install packages (pip/npm/uv)
+- `run_tests`: Execute tests (pytest/jest/unittest)
+- `run_linter`: Run linters (flake8/eslint/pylint)
+- `check_environment`: Verify available tools
+
+### Git Integration (`git_tools.py`) ⭐ NEW
+- `git_status`: Check modified files
+- `git_diff`: View file changes
+- `git_log`: See commit history
+- `git_branch_info`: Check branches
+- `git_show_file`: View file at commit
+- `git_file_history`: See file commit history
+- `git_check_conflicts`: Detect merge conflicts
+
+### Task Management (`task_management.py`)
 - `create_task`: Create new tasks
 - `update_task_status`: Update task progress
 - `update_task_result`: Record task results
 - `get_all_tasks`: View all tasks
 - `get_pending_tasks`: View pending tasks
 
-### Code Analysis
+### Code Analysis (`code_analysis.py`)
 - `analyze_python_syntax`: Check Python syntax
 - `count_functions`: Count functions and classes
 - `check_imports`: List imports

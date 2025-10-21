@@ -1,0 +1,426 @@
+---
+globs: "*.md,docs/**"
+---
+# Documentation Guidelines
+
+## Documentation Files
+
+### Core Documentation
+- [README.md](mdc:README.md) - Project overview and quick start
+- [ARCHITECTURE.md](mdc:ARCHITECTURE.md) - System architecture and design
+- [AGENTS.md](mdc:AGENTS.md) - Agent descriptions and responsibilities
+- [CLAUDE.md](mdc:CLAUDE.md) - Guidance for Claude Code
+- [QUICKSTART.md](mdc:QUICKSTART.md) - Quick start guide
+
+### Documentation Principles
+1. **Clarity** - Write for developers who are new to the project
+2. **Examples** - Include code examples and usage patterns
+3. **Up-to-date** - Keep documentation synchronized with code
+4. **Structure** - Use consistent formatting and organization
+
+## README Structure
+
+### Essential Sections
+```markdown
+# Project Name
+
+Brief description (1-2 sentences)
+
+## Features
+- Feature 1
+- Feature 2
+
+## Installation
+```bash
+# Installation commands
+```
+
+## Quick Start
+```bash
+# Quick start commands
+```
+
+## Usage
+```python
+# Usage examples
+```
+
+## Configuration
+How to configure the project
+
+## Development
+How to contribute and develop
+
+## License
+License information
+```
+
+## Code Documentation
+
+### Docstring Format
+```python
+def function_name(param1: str, param2: int) -> str:
+    """
+    Brief one-line description.
+    
+    More detailed description if needed. Explain what the function does,
+    why it exists, and any important considerations.
+    
+    Args:
+        param1: Description of first parameter
+        param2: Description of second parameter
+        
+    Returns:
+        Description of return value
+        
+    Raises:
+        ValueError: When param1 is invalid
+        
+    Example:
+        >>> function_name("test", 42)
+        'result'
+    """
+```
+
+### Class Documentation
+```python
+class ClassName:
+    """
+    Brief one-line description of the class.
+    
+    Detailed description explaining the purpose, usage, and any important
+    patterns or conventions.
+    
+    Attributes:
+        attribute1: Description of attribute
+        attribute2: Description of attribute
+        
+    Example:
+        >>> obj = ClassName()
+        >>> obj.method()
+    """
+    
+    def __init__(self, param: str):
+        """
+        Initialize the class.
+        
+        Args:
+            param: Description of initialization parameter
+        """
+        self.attribute1 = param
+```
+
+### Module Documentation
+```python
+"""
+Module name and brief description.
+
+This module provides functionality for X, Y, and Z. It is used by
+agents A and B to accomplish task C.
+
+Typical usage:
+    from nilcode.module import function_name
+    
+    result = function_name(arg1, arg2)
+"""
+```
+
+## Inline Comments
+
+### When to Comment
+```python
+# Good: Explain WHY, not WHAT
+# Use binary search because the list is already sorted
+index = bisect.bisect_left(sorted_list, target)
+
+# Good: Explain non-obvious behavior
+# Timeout is in seconds, but API expects milliseconds
+api_timeout = timeout * 1000
+
+# Bad: Obvious comment
+# Increment counter by 1
+counter += 1
+
+# Bad: Redundant comment
+# Get user name
+user_name = get_user_name()
+```
+
+### Complex Logic
+```python
+# When logic is complex, explain the approach
+def calculate_priority(task: Task) -> float:
+    """Calculate task priority score."""
+    # Priority = (Urgency × 2) + Importance + (1 / DaysUntilDeadline)
+    # We weight urgency more heavily because urgent tasks can't wait
+    urgency_score = task.urgency * 2
+    importance_score = task.importance
+    
+    # Avoid division by zero for tasks without deadlines
+    deadline_score = 1 / max(task.days_until_deadline, 1)
+    
+    return urgency_score + importance_score + deadline_score
+```
+
+## Architecture Documentation
+
+### System Overview
+Document high-level architecture in ARCHITECTURE.md:
+```markdown
+# Architecture
+
+## System Components
+1. **Component 1** - Purpose and responsibilities
+2. **Component 2** - Purpose and responsibilities
+
+## Data Flow
+```
+User Request → Planner → Developer Agents → Tester → Orchestrator
+```
+
+## State Management
+How state flows through the system
+
+## Key Design Decisions
+Why we made certain architectural choices
+```
+
+### Agent Documentation
+Document each agent's role in AGENTS.md:
+```markdown
+# Agents
+
+## Planner Agent
+**Purpose**: Analyzes requests and creates task breakdowns
+
+**Inputs**: User request string
+
+**Outputs**: List of tasks with assignments
+
+**Tools**: Task management tools
+
+**Temperature**: 0.3 (needs creativity for task decomposition)
+```
+
+## API Documentation
+
+### Tool Documentation
+```python
+@tool
+def tool_name(param1: str, param2: Optional[int] = None) -> str:
+    """
+    Brief description of what the tool does.
+    
+    This tool is used by [agent names] to accomplish [purpose].
+    It interacts with [external system/file system/etc].
+    
+    Args:
+        param1: Description with constraints/format
+        param2: Optional parameter description
+        
+    Returns:
+        "Success: details" on success
+        "Error: message" on failure
+        
+    Example:
+        >>> tool_name("example", 42)
+        'Success: Operation completed'
+    """
+```
+
+## Change Documentation
+
+### Commit Messages
+```bash
+# Good commit messages
+git commit -m "Add context gathering for existing codebases"
+git commit -m "Fix syntax error handling in error recovery agent"
+git commit -m "Update README with new environment variables"
+
+# Bad commit messages
+git commit -m "Fix bug"
+git commit -m "Update"
+git commit -m "WIP"
+```
+
+### Changelog Format
+```markdown
+# Changelog
+
+## [0.2.0] - 2025-01-15
+
+### Added
+- Context gathering agent for existing codebases
+- Error recovery agent for automatic error fixing
+- Git tools for repository analysis
+
+### Changed
+- Improved planner task breakdown logic
+- Updated LLM configuration system
+
+### Fixed
+- Fixed import resolution in generated code
+- Fixed task routing in complex workflows
+```
+
+## Configuration Documentation
+
+### Config File Examples
+```markdown
+## Configuration
+
+Create a `.nilcoderc` file in your project root:
+
+```json
+{
+  "project_name": "my-project",
+  "agent_settings": {
+    "planner": {
+      "temperature": 0.3,
+      "max_tasks": 20
+    }
+  },
+  "llm_settings": {
+    "model": "openai/gpt-oss-20b",
+    "max_tokens": 4096
+  }
+}
+```
+
+### Configuration Options
+- `project_name`: Name of your project
+- `agent_settings`: Per-agent configuration
+- `llm_settings`: LLM model and parameters
+```
+
+## Examples Documentation
+
+### Example Structure
+```python
+"""
+Example: Creating a Todo API
+
+This example demonstrates how to use NilCode to create a complete
+FastAPI-based todo application.
+"""
+
+from nilcode.main_agent import create_workflow
+from nilcode.state.agent_state import create_initial_state
+
+def example_todo_api():
+    """Create a todo API using NilCode."""
+    # Load environment
+    load_dotenv()
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    
+    # Create workflow
+    workflow = create_workflow(api_key)
+    
+    # Define request
+    request = """
+    Create a FastAPI-based todo application with:
+    - CRUD endpoints for todos
+    - SQLite database
+    - Pydantic models
+    - Unit tests
+    """
+    
+    # Execute
+    state = create_initial_state(request)
+    result = workflow.invoke(state)
+    
+    # Show results
+    print(f"Status: {result['overall_status']}")
+    print(f"Files created: {result['modified_files']}")
+
+if __name__ == "__main__":
+    example_todo_api()
+```
+
+## Testing Documentation
+
+### Test Documentation
+```python
+def test_planner_creates_valid_tasks():
+    """
+    Test that the planner agent creates valid task structures.
+    
+    This test verifies:
+    1. Tasks are created with all required fields
+    2. Tasks are assigned to appropriate agents
+    3. Task status is initialized correctly
+    4. Plan summary is generated
+    """
+    # Setup
+    agent = create_planner_agent(api_key)
+    state = create_initial_state("Create a login page")
+    
+    # Execute
+    result = agent(state)
+    
+    # Verify
+    assert "tasks" in result
+    assert len(result["tasks"]) > 0
+    assert all("id" in task for task in result["tasks"])
+```
+
+## Troubleshooting Documentation
+
+### Common Issues Section
+```markdown
+## Troubleshooting
+
+### Issue: "API key not found"
+**Cause**: Missing environment variable
+**Solution**: Create `.env` file with `OPENROUTER_API_KEY=your-key`
+
+### Issue: "Import error: No module named 'langchain'"
+**Cause**: Dependencies not installed
+**Solution**: Run `uv sync` to install dependencies
+
+### Issue: "Task routing fails"
+**Cause**: Invalid agent name in task assignment
+**Solution**: Use exact agent names: planner, software_architect, frontend_developer, backend_developer, tester, orchestrator
+```
+
+## Documentation Maintenance
+
+### Keeping Docs Updated
+1. **Update with code changes** - Change docs when you change behavior
+2. **Version documentation** - Tag docs with releases
+3. **Review regularly** - Check for outdated information
+4. **Link to code** - Use file references like [file.py](mdc:file.py)
+5. **Test examples** - Ensure example code actually works
+
+### Documentation Review Checklist
+- [ ] All public functions have docstrings
+- [ ] All classes have docstrings
+- [ ] README is up to date
+- [ ] Examples run without errors
+- [ ] Configuration options are documented
+- [ ] Architecture diagrams match implementation
+- [ ] Troubleshooting covers common issues
+- [ ] Links to files are valid
+
+## Tools Documentation
+
+### Tool Reference Template
+```markdown
+### tool_name
+
+**Purpose**: What the tool does
+
+**Parameters**:
+- `param1` (str): Description
+- `param2` (int, optional): Description
+
+**Returns**: String with "Success:" or "Error:"
+
+**Example**:
+```python
+result = tool_name("value", 42)
+# Returns: "Success: operation completed"
+```
+
+**Used by**: List of agents that use this tool
+```
