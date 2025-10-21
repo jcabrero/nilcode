@@ -292,7 +292,7 @@ def create_error_recovery_agent(api_key: str, base_url: str = None) -> ErrorReco
         Configured ErrorRecoveryAgent
     """
     model_kwargs = {
-        "model": "openai/gpt-oss-20b:free",
+        "model": "openai/gpt-oss-120b",
         "api_key": api_key,
     }
 

@@ -8,7 +8,7 @@ This agent is responsible for:
 4. Creating a structured plan
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, List
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
@@ -119,6 +119,114 @@ Always respond with valid JSON only. No additional text before or after the JSON
 """
 
 
+def _generate_task_requirements(task_content: str, assigned_agent: str) -> List[str]:
+    """
+    Generate requirements for a task based on its content and assigned agent.
+    
+    Args:
+        task_content: Description of the task
+        assigned_agent: Agent assigned to the task
+        
+    Returns:
+        List of requirements for completing the task
+    """
+    requirements = []
+    
+    # Common requirements based on agent type
+    if assigned_agent == "software_architect":
+        requirements.extend([
+            "Read and understand the user request",
+            "Analyze existing codebase structure",
+            "Design appropriate directory structure",
+            "Create PROJECT_MANIFEST.md with architectural decisions",
+            "Create .agent-guidelines/ directory with coding standards"
+        ])
+    elif assigned_agent == "coder":
+        requirements.extend([
+            "Read PROJECT_MANIFEST.md for architectural guidance",
+            "Read .agent-guidelines/ for coding standards",
+            "Implement code following established patterns",
+            "Validate syntax using appropriate validation tools",
+            "Verify files are actually created and contain expected content"
+        ])
+    elif assigned_agent == "tester":
+        requirements.extend([
+            "Read all created/modified files",
+            "Validate syntax of all code files",
+            "Write comprehensive unit tests",
+            "Verify test coverage and quality",
+            "Report any issues found"
+        ])
+    
+    # Task-specific requirements based on content
+    content_lower = task_content.lower()
+    
+    if "package.json" in content_lower or "dependencies" in content_lower:
+        requirements.append("Create package.json with all necessary dependencies")
+    
+    if "pyproject.toml" in content_lower or "python" in content_lower:
+        requirements.append("Create pyproject.toml with Python dependencies")
+    
+    if "react" in content_lower or "component" in content_lower:
+        requirements.extend([
+            "Create React components with proper JSX syntax",
+            "Implement proper state management",
+            "Add appropriate styling"
+        ])
+    
+    if "api" in content_lower or "backend" in content_lower:
+        requirements.extend([
+            "Implement API endpoints with proper error handling",
+            "Add input validation and sanitization",
+            "Include proper HTTP status codes"
+        ])
+    
+    if "test" in content_lower:
+        requirements.extend([
+            "Write unit tests for all functions",
+            "Test edge cases and error conditions",
+            "Ensure adequate test coverage"
+        ])
+    
+    return requirements
+
+
+def _estimate_task_effort(task_content: str) -> str:
+    """
+    Estimate the effort required for a task based on its content.
+    
+    Args:
+        task_content: Description of the task
+        
+    Returns:
+        Effort level: "low", "medium", or "high"
+    """
+    content_lower = task_content.lower()
+    
+    # High effort indicators
+    high_effort_keywords = [
+        "complete", "full", "entire", "comprehensive", "all", "multiple",
+        "authentication", "database", "api", "backend", "frontend",
+        "complex", "advanced", "integration", "deployment"
+    ]
+    
+    # Low effort indicators
+    low_effort_keywords = [
+        "simple", "basic", "single", "one", "create", "add", "fix",
+        "update", "modify", "small", "quick"
+    ]
+    
+    high_count = sum(1 for keyword in high_effort_keywords if keyword in content_lower)
+    low_count = sum(1 for keyword in low_effort_keywords if keyword in content_lower)
+    
+    if high_count >= 2 or len(task_content.split()) > 20:
+        return "high"
+    elif low_count >= 2 or len(task_content.split()) < 8:
+        return "low"
+    else:
+        return "medium"
+
+
 class PlannerAgent:
     """
     Planner agent that analyzes requests and creates task plans.
@@ -191,16 +299,33 @@ class PlannerAgent:
             # Extract tasks
             for task_def in plan_data.get("tasks", []):
                 task_id = str(uuid.uuid4())[:8]
+                
+                # Generate requirements based on task content and assigned agent
+                requirements = _generate_task_requirements(task_def.get("content", ""), task_def.get("assignedTo", ""))
+                
+                # Estimate effort based on task complexity
+                estimated_effort = _estimate_task_effort(task_def.get("content", ""))
+                
                 task = {
                     "id": task_id,
                     "content": task_def.get("content", ""),
                     "status": "pending",
                     "activeForm": task_def.get("activeForm", ""),
                     "assignedTo": task_def.get("assignedTo", "unassigned"),
-                    "result": ""
+                    "result": "",
+                    # Enhanced task tracking
+                    "requirements": requirements,
+                    "progress": "Not started",
+                    "files_created": [],
+                    "files_modified": [],
+                    "dependencies": [],
+                    "retry_count": 0,
+                    "last_error": "",
+                    "estimated_effort": estimated_effort,
+                    "actual_effort": "not_started"
                 }
                 created_tasks.append(task)
-                print(f"  📝 Task: {task['content']} → {task['assignedTo']}")
+                print(f"  📝 Task: {task['content']} → {task['assignedTo']} (effort: {estimated_effort})")
 
             plan_summary = plan_data.get("summary", "Plan created")
 

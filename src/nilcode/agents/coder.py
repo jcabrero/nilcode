@@ -17,6 +17,9 @@ from ..state.agent_state import AgentState
 from ..tools.file_operations import file_tools
 from ..tools.task_management import task_tools, set_task_storage
 from ..tools.validation_tools import validation_tools
+from ..tools.file_verification import file_verification_tools
+from ..tools.retry_tools import retry_tools
+from ..tools.enhanced_task_management import enhanced_task_tools
 from .utils import determine_next_agent
 
 from ..prompts.claude import PROMPT
@@ -81,17 +84,27 @@ CRITICAL WORKFLOW - FOLLOW THIS ORDER:
    - HTML (.html): Use validate_html_syntax
    - JSON (.json): Use validate_json_syntax
 2. Use check_import_validity to verify imports
-3. If validation fails, FIX IT before marking complete
-4. Re-validate after fixes (max 2 attempts)
+3. Use verify_file_exists and verify_file_content to confirm files are actually created
+4. If validation fails, FIX IT before marking complete
+5. Re-validate after fixes (max 2 attempts)
 
-**PHASE 5: Complete Task**
+**PHASE 5: Track Progress and Context (ALWAYS!)**
+1. Use update_task_progress to track what you've accomplished
+2. Use update_task_requirements to document what was needed
+3. Use verify_multiple_files to confirm all expected files exist
+4. Use get_task_context to review what's been done
+5. Document any implementation decisions in the task notes
+
+**PHASE 6: Complete Task**
 1. Only mark task as "completed" if validation passes
 2. Provide comprehensive summary including files created/modified
 
 You have access to:
 - File tools: read_file, write_file, edit_file, list_files, create_directory
 - Validation tools: validate_python_file, validate_python_syntax, validate_javascript_syntax, validate_html_syntax, validate_json_syntax, check_import_validity
-- Task tools: update task status
+- File verification tools: verify_file_exists, verify_file_content, verify_multiple_files, check_file_permissions, verify_directory_structure
+- Task tools: update task status, create_enhanced_task, update_task_progress, get_task_context, validate_task_completion
+- Retry tools: start_retry_tracking, record_retry_attempt, wait_for_retry
 
 SYNTAX REQUIREMENTS FOR PYTHON:
 - Proper indentation (4 spaces per level)
@@ -135,9 +148,64 @@ class CoderAgent:
         Args:
             model: Language model to use
         """
-        all_tools = file_tools + task_tools + validation_tools
+        all_tools = file_tools + task_tools + validation_tools + file_verification_tools + retry_tools + enhanced_task_tools
         self.model = model.bind_tools(all_tools)
         self.name = "coder"
+
+    def _invoke_with_retry(self, messages, state, max_retries=3):
+        """
+        Invoke the model with retry handling for rate limits and other transient errors.
+        
+        Args:
+            messages: Messages to send to the model
+            state: Current agent state
+            max_retries: Maximum number of retry attempts
+            
+        Returns:
+            Model response
+        """
+        from openai import RateLimitError
+        import time
+        import random
+        
+        for attempt in range(max_retries + 1):
+            try:
+                print(f"    🤖 Calling LLM (attempt {attempt + 1}/{max_retries + 1})...")
+                response = self.model.invoke(messages)
+                return response
+                
+            except RateLimitError as e:
+                if attempt == max_retries:
+                    print(f"    ❌ Rate limit exceeded after {max_retries} retries")
+                    print(f"    💡 Consider using a different model or adding your own API key")
+                    raise e
+                
+                # Calculate exponential backoff with jitter
+                base_delay = 2 ** attempt  # 1, 2, 4, 8 seconds
+                jitter = random.uniform(0.5, 1.5)  # Add randomness
+                delay = base_delay * jitter
+                
+                print(f"    ⚠️  Rate limit hit: {str(e)}")
+                print(f"    ⏳ Retrying in {delay:.1f} seconds...")
+                time.sleep(delay)
+                
+                # Update task progress to show retry attempt
+                if "tasks" in state:
+                    tasks = state["tasks"]
+                    for task in tasks:
+                        if task.get("status") == "in_progress":
+                            task["retry_count"] = attempt + 1
+                            task["last_error"] = f"Rate limit error (attempt {attempt + 1})"
+                            task["progress"] = f"Retrying due to rate limit (attempt {attempt + 1})"
+                
+            except Exception as e:
+                if attempt == max_retries:
+                    print(f"    ❌ Error after {max_retries} retries: {str(e)}")
+                    raise e
+                
+                print(f"    ⚠️  Error: {str(e)}")
+                print(f"    ⏳ Retrying in 2 seconds...")
+                time.sleep(2)
 
     def __call__(self, state: AgentState) -> Dict[str, Any]:
         """
@@ -215,14 +283,14 @@ Begin by reading the project documentation!""")
             task_content=current_task["content"]
         )
 
-        # Get response from model
-        response = self.model.invoke(messages)
+        # Get response from model with retry handling for rate limits
+        response = self._invoke_with_retry(messages, state)
         messages_history = list(messages) + [response]
 
         # Execute tool calls
         max_iterations = 25  # Increased for comprehensive implementation
         iteration = 0
-        all_tools = file_tools + task_tools + validation_tools
+        all_tools = file_tools + task_tools + validation_tools + file_verification_tools + retry_tools + enhanced_task_tools
         tool_outputs = []
 
         while response.tool_calls and iteration < max_iterations:
@@ -263,8 +331,8 @@ Begin by reading the project documentation!""")
                     print(f"    ⚠️ Error processing tool call: {e}")
                     continue
 
-            # Get next response
-            response = self.model.invoke(messages_history)
+            # Get next response with retry handling
+            response = self._invoke_with_retry(messages_history, state)
             messages_history.append(response)
 
         # Generate final summary after all tools are done
@@ -275,7 +343,7 @@ Begin by reading the project documentation!""")
                 messages_history.append(HumanMessage(
                     content="Please provide a comprehensive summary of what you just implemented, including what files were created/modified and what functionality was added."
                 ))
-                response = self.model.invoke(messages_history)
+                response = self._invoke_with_retry(messages_history, state)
                 messages_history.append(response)
 
             print(f"\n✅ Coder task completed!")
@@ -324,7 +392,7 @@ def create_coder_agent(api_key: str, base_url: str = None) -> CoderAgent:
         Configured CoderAgent
     """
     model_kwargs = {
-        "model": "qwen/qwen3-coder:free",
+        "model": "openai/gpt-oss-120b",  # More reliable than free models
         "api_key": api_key,
     }
 

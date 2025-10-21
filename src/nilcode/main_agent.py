@@ -21,7 +21,6 @@ if __name__ == "__main__" and __package__ is None:
     from .agents.software_architect import create_software_architect_agent
     from .agents.coder import create_coder_agent
     from .agents.tester import create_tester_agent
-    from .agents.context_gatherer import create_context_gatherer_agent
     from .agents.error_recovery import create_error_recovery_agent
 else:
     from .state.agent_state import AgentState, create_initial_state
@@ -30,7 +29,6 @@ else:
     from .agents.software_architect import create_software_architect_agent
     from .agents.coder import create_coder_agent
     from .agents.tester import create_tester_agent
-    from .agents.context_gatherer import create_context_gatherer_agent
     from .agents.error_recovery import create_error_recovery_agent
 
 
@@ -53,7 +51,6 @@ class MultiAgentSystem:
         # Create all agents
         self.orchestrator = create_orchestrator_agent(api_key, base_url)
         self.planner = create_planner_agent(api_key, base_url)
-        self.context_gatherer = create_context_gatherer_agent(api_key, base_url)
         self.software_architect = create_software_architect_agent(api_key, base_url)
         self.coder = create_coder_agent(api_key, base_url)
         self.tester = create_tester_agent(api_key, base_url)
@@ -75,7 +72,6 @@ class MultiAgentSystem:
         # Add all agent nodes
         workflow.add_node("orchestrator", self.orchestrator)
         workflow.add_node("planner", self.planner)
-        workflow.add_node("context_gatherer", self.context_gatherer)
         workflow.add_node("software_architect", self.software_architect)
         workflow.add_node("coder", self.coder)
         workflow.add_node("tester", self.tester)
@@ -96,7 +92,6 @@ class MultiAgentSystem:
 
         # Define all possible agent transitions
         all_agents = {
-            "context_gatherer": "context_gatherer",
             "software_architect": "software_architect",
             "coder": "coder",
             "tester": "tester",
@@ -107,7 +102,6 @@ class MultiAgentSystem:
 
         # Add conditional edges from each agent
         workflow.add_conditional_edges("planner", route_next, all_agents)
-        workflow.add_conditional_edges("context_gatherer", route_next, all_agents)
         workflow.add_conditional_edges("software_architect", route_next, all_agents)
         workflow.add_conditional_edges("coder", route_next, all_agents)
         workflow.add_conditional_edges("tester", route_next, all_agents)

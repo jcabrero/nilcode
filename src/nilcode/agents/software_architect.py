@@ -273,7 +273,7 @@ def create_software_architect_agent(api_key: str, base_url: str = None) -> Softw
         Configured SoftwareArchitectAgent
     """
     model_kwargs: Dict[str, Any] = {
-        "model": "openai/gpt-oss-20b:free",
+        "model": "openai/gpt-oss-120b",
         "api_key": api_key,
     }
 

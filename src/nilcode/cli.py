@@ -56,10 +56,8 @@ def print_agent_status(agent_name: str, status: str = "running"):
     
     agent_display = {
         "planner": "Planner",
-        "context_gatherer": "Context Gatherer",
         "software_architect": "Software Architect",
-        "frontend_developer": "Frontend Developer",
-        "backend_developer": "Backend Developer",
+        "coder": "Coder",
         "tester": "Tester & Validator",
         "error_recovery": "Error Recovery",
         "orchestrator": "Orchestrator"

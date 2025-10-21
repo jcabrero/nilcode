@@ -51,11 +51,11 @@ uv run python test_planner.py
 
 The system uses LangGraph's StateGraph to coordinate 6 specialized agents:
 
-1. **Planner** (`src/nilcode/agents/planner.py`) - Entry point that analyzes requests, creates task breakdowns, and manages the todo list
-2. **Software Architect** (`src/nilcode/agents/software_architect.py`) - Establishes repository structure, creates shared configuration/boilerplate, and documents architectural decisions
-3. **Frontend Developer** (`src/nilcode/agents/frontend_developer.py`) - Writes HTML/CSS/JS/TS and React/Vue components
-4. **Backend Developer** (`src/nilcode/agents/backend_developer.py`) - Writes Python (FastAPI/Flask/Django) or Node.js services, implements APIs
-5. **Tester & Validator** (`src/nilcode/agents/tester.py`) - Validates code syntax/style, writes unit tests, performs code analysis
+1. **Planner** (`src/nilcode/agents/planner.py`) - Entry point that analyzes requests, detects languages/frameworks, creates task breakdowns
+2. **Software Architect** (`src/nilcode/agents/software_architect.py`) - Establishes repository structure, creates PROJECT_MANIFEST.md and architectural guidelines
+3. **Coder** (`src/nilcode/agents/coder.py`) - Handles ALL implementation including dependencies, frontend, backend, and configuration files
+4. **Tester & Validator** (`src/nilcode/agents/tester.py`) - Validates code syntax/style, writes unit tests, performs code analysis
+5. **Error Recovery** (`src/nilcode/agents/error_recovery.py`) - Fixes syntax errors and handles code recovery
 6. **Orchestrator** (`src/nilcode/agents/orchestrator.py`) - Coordinates workflow, routes tasks, aggregates results, provides final summaries
 
 ### State Management
@@ -87,18 +87,22 @@ Agents have access to tools defined in `src/nilcode/tools/`:
 **Code Analysis** (`code_analysis.py`):
 - analyze_python_syntax, count_functions, check_imports, find_todos_in_code, check_code_complexity, validate_code_style
 
-**Validation Tools** (`validation_tools.py`) - NEW:
+**Validation Tools** (`validation_tools.py`):
 - validate_python_syntax, validate_python_file, validate_javascript_syntax, validate_html_syntax, validate_json_syntax, check_import_validity, auto_detect_language
+
+**Terminal Tools** (`terminal_tools.py`):
+- run_command - Execute shell commands (used by error_recovery agent)
 
 ### Workflow Execution
 
-**Enhanced workflow with validation:**
+**Simplified workflow:**
 
 1. **Planner** → Analyzes request, detects languages/frameworks, creates tasks
 2. **Software Architect** → Creates PROJECT_MANIFEST.md and .agent-guidelines/, sets up structure
-3. **Developer agents** → Read manifest, implement code following guidelines, validate syntax
+3. **Coder** → Implements all code (dependencies, frontend, backend), validates syntax
 4. **Tester** → Validates ALL files, checks syntax, writes tests
-5. **Orchestrator** → Aggregates results
+5. **Error Recovery** → Fixes any syntax errors or issues found
+6. **Orchestrator** → Aggregates results and provides summary
 
 **Key improvements:**
 - Planner detects tech stack and passes to all agents

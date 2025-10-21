@@ -18,8 +18,6 @@ from ..tools.file_operations import file_tools
 from ..tools.task_management import task_tools, set_task_storage
 from ..tools.code_analysis import code_analysis_tools
 from ..tools.validation_tools import validation_tools
-from ..tools.import_validator import import_validation_tools
-from ..tools.test_templates import test_template_tools
 
 from ..prompts.claude import PROMPT
 
@@ -226,8 +224,6 @@ class TesterAgent:
             + task_tools
             + code_analysis_tools
             + validation_tools
-            + import_validation_tools
-            + test_template_tools
         )
         self.model = model.bind_tools(all_tools)
         self.name = "tester"
@@ -345,8 +341,6 @@ Start by validating imports first!""")
             + task_tools
             + code_analysis_tools
             + validation_tools
-            + import_validation_tools
-            + test_template_tools
         )
         test_outputs = []
 
@@ -436,7 +430,7 @@ def create_tester_agent(api_key: str, base_url: str = None) -> TesterAgent:
         Configured TesterAgent
     """
     model_kwargs = {
-        "model": "qwen/qwen3-coder:free",
+        "model": "openai/gpt-oss-120b",
         "api_key": api_key,
     }
 
