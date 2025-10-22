@@ -18,18 +18,22 @@ if __name__ == "__main__" and __package__ is None:
     from .state.agent_state import AgentState, create_initial_state
     from .agents.orchestrator import create_orchestrator_agent
     from .agents.planner import create_planner_agent
+    from .agents.preplanner import create_preplanner_agent
     from .agents.software_architect import create_software_architect_agent
     from .agents.coder import create_coder_agent
     from .agents.tester import create_tester_agent
     from .agents.error_recovery import create_error_recovery_agent
+    from .agents.onchain_detective import create_onchain_detective_agent
 else:
     from .state.agent_state import AgentState, create_initial_state
     from .agents.orchestrator import create_orchestrator_agent
     from .agents.planner import create_planner_agent
+    from .agents.preplanner import create_preplanner_agent
     from .agents.software_architect import create_software_architect_agent
     from .agents.coder import create_coder_agent
     from .agents.tester import create_tester_agent
     from .agents.error_recovery import create_error_recovery_agent
+    from .agents.onchain_detective import create_onchain_detective_agent
 
 
 class MultiAgentSystem:
@@ -50,11 +54,13 @@ class MultiAgentSystem:
 
         # Create all agents
         self.orchestrator = create_orchestrator_agent(api_key, base_url)
+        self.preplanner = create_preplanner_agent(api_key, base_url)
         self.planner = create_planner_agent(api_key, base_url)
         self.software_architect = create_software_architect_agent(api_key, base_url)
         self.coder = create_coder_agent(api_key, base_url)
         self.tester = create_tester_agent(api_key, base_url)
         self.error_recovery = create_error_recovery_agent(api_key, base_url)
+        self.onchain_detective = create_onchain_detective_agent(api_key, base_url)
 
         # Build the workflow graph
         self.workflow = self._build_workflow()
@@ -71,11 +77,13 @@ class MultiAgentSystem:
 
         # Add all agent nodes
         workflow.add_node("orchestrator", self.orchestrator)
+        workflow.add_node("preplanner", self.preplanner)
         workflow.add_node("planner", self.planner)
         workflow.add_node("software_architect", self.software_architect)
         workflow.add_node("coder", self.coder)
         workflow.add_node("tester", self.tester)
         workflow.add_node("error_recovery", self.error_recovery)
+        workflow.add_node("onchain_detective", self.onchain_detective)
 
         # Define the routing logic
         def route_next(state: AgentState) -> str:
@@ -87,25 +95,29 @@ class MultiAgentSystem:
 
             return next_agent or "end"
 
-        # Set entry point
-        workflow.set_entry_point("planner")
+        # Set entry point to PrePlanner
+        workflow.set_entry_point("preplanner")
 
         # Define all possible agent transitions
         all_agents = {
+            "planner": "planner",
             "software_architect": "software_architect",
             "coder": "coder",
             "tester": "tester",
             "error_recovery": "error_recovery",
             "orchestrator": "orchestrator",
+            "onchain_detective": "onchain_detective",
             "end": END
         }
 
         # Add conditional edges from each agent
+        workflow.add_conditional_edges("preplanner", route_next, all_agents)
         workflow.add_conditional_edges("planner", route_next, all_agents)
         workflow.add_conditional_edges("software_architect", route_next, all_agents)
         workflow.add_conditional_edges("coder", route_next, all_agents)
         workflow.add_conditional_edges("tester", route_next, all_agents)
         workflow.add_conditional_edges("error_recovery", route_next, all_agents)
+        workflow.add_conditional_edges("onchain_detective", route_next, all_agents)
         
         # Orchestrator can route back or end
         workflow.add_conditional_edges(

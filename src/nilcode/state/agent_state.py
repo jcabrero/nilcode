@@ -84,9 +84,13 @@ class AgentState(TypedDict):
     task_progress: Dict[str, Any]  # Detailed progress for each task
     file_verification: Dict[str, bool]  # Track which files have been verified as created
     retry_queue: List[str]  # Tasks that need to be retried
-    context_summary: str  # Current context summary
     implementation_notes: Dict[str, str]  # Notes about implementation decisions
     verification_results: Dict[str, Any]  # Results of file and code verification
+
+    # Pre-planning intent understanding
+    user_intent: str  # e.g., build|explain|research|onchain_query|unknown
+    intent_confidence: float  # 0.0 - 1.0
+    intent_details: Dict[str, Any]  # Full parsed intent payload
 
 
 def create_initial_state(user_request: str, working_directory: str = ".") -> AgentState:
@@ -132,5 +136,9 @@ def create_initial_state(user_request: str, working_directory: str = ".") -> Age
         file_verification={},
         retry_queue=[],
         implementation_notes={},
-        verification_results={}
+        verification_results={},
+        # Intent defaults
+        user_intent="unknown",
+        intent_confidence=0.0,
+        intent_details={},
     )

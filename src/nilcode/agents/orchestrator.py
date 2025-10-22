@@ -103,6 +103,7 @@ class OrchestratorAgent:
         arch_impl = impl_results.get("architecture", "")
         frontend_impl = impl_results.get("frontend", "")
         backend_impl = impl_results.get("backend", "")
+        onchain_impl = impl_results.get("onchain", "") or impl_results.get("onchain_detective", "")
         
         # Debug: Show what we received
         print(f"  📊 State received:")
@@ -110,6 +111,8 @@ class OrchestratorAgent:
         print(f"     - Frontend result: {len(frontend_impl)} chars")
         print(f"     - Backend result: {len(backend_impl)} chars")
         print(f"     - Project files: {len(state.get('project_files', {}))} files")
+        if onchain_impl:
+            print(f"     - Onchain result: {len(onchain_impl)} chars")
         print(f"     - Tasks: {len(state.get('tasks', []))} tasks")
         
         # Fallback: If implementation_results are empty, build summary from tasks
@@ -156,6 +159,8 @@ Frontend implementation: {frontend_impl}
 
 Backend implementation: {backend_impl}
 
+Onchain results: {onchain_impl}
+
 Test results: {test_results}
 
 Please provide a comprehensive summary of what was accomplished, including:
@@ -174,6 +179,7 @@ Please provide a comprehensive summary of what was accomplished, including:
             architecture_impl=arch_impl if arch_impl else "No architecture work details available",
             frontend_impl=frontend_impl if frontend_impl else "No frontend work details available",
             backend_impl=backend_impl if backend_impl else "No backend work details available",
+            onchain_impl=onchain_impl if onchain_impl else "No onchain results",
             test_results=state.get("test_results", {}).get("summary", "No test results")
         )
 

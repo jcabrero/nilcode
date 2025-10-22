@@ -6,7 +6,7 @@ from typing import Dict, Any
 from datetime import datetime
 
 # Version information
-__version__ = "2.0.10"
+__version__ = "2.0.23"
 __version_name__ = "Validator"
 __release_date__ = "2025-01-21"
 
@@ -158,19 +158,19 @@ def print_version_info() -> None:
     print(f"Released: {info['release_date']}")
     print(f"{'='*70}\n")
 
-    if info['history']:
+    if info["history"]:
         print(f"Description:")
         print(f"  {info['history'].get('description', 'N/A')}\n")
 
-        if info['history'].get('features'):
+        if info["history"].get("features"):
             print("Features:")
-            for feature in info['history']['features']:
+            for feature in info["history"]["features"]:
                 print(f"  ✓ {feature}")
             print()
 
-        if info['history'].get('breaking_changes'):
+        if info["history"].get("breaking_changes"):
             print("Breaking Changes:")
-            for change in info['history']['breaking_changes']:
+            for change in info["history"]["breaking_changes"]:
                 print(f"  ⚠ {change}")
             print()
 
@@ -182,9 +182,9 @@ def print_changelog(limit: int = None) -> None:
     Args:
         limit: Maximum number of versions to show. None shows all.
     """
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("VERSION CHANGELOG")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     versions = sorted(VERSION_HISTORY.keys(), reverse=True)
     if limit:
@@ -196,15 +196,15 @@ def print_changelog(limit: int = None) -> None:
         print(f"{'-'*70}")
         print(f"{info['description']}\n")
 
-        if info.get('features'):
+        if info.get("features"):
             print("Features:")
-            for feature in info['features']:
+            for feature in info["features"]:
                 print(f"  ✓ {feature}")
             print()
 
-        if info.get('breaking_changes'):
+        if info.get("breaking_changes"):
             print("Breaking Changes:")
-            for change in info['breaking_changes']:
+            for change in info["breaking_changes"]:
                 print(f"  ⚠ {change}")
             print()
 
@@ -222,8 +222,9 @@ def check_version_compatibility(required_version: str) -> bool:
     Returns:
         True if current version >= required version
     """
+
     def parse_version(v: str) -> tuple:
-        return tuple(map(int, v.split('.')))
+        return tuple(map(int, v.split(".")))
 
     current = parse_version(__version__)
     required = parse_version(required_version)
