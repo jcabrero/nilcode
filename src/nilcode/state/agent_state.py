@@ -60,6 +60,14 @@ class AgentState(TypedDict):
     detected_languages: List[str]  # Auto-detected languages from requirements
     project_manifest_path: str  # Path to PROJECT_MANIFEST.md created by architect
     guidelines_path: str  # Path to .agent-guidelines/ directory
+    
+    # Blockchain context
+    blockchain_tech: List[str]  # e.g., ["hedera", "ethereum", "polygon"]
+    hedera_network: str  # "testnet", "mainnet", "previewnet"
+    hedera_account_id: str  # Hedera account ID for operations
+    hedera_private_key: str  # Hedera private key (encrypted/stored securely)
+    ai_provider: str  # "openai", "anthropic", "groq", "ollama"
+    ai_provider_key: str  # API key for the chosen AI provider
 
     # Agent routing
     next_agent: str  # Which agent should execute next
@@ -116,6 +124,13 @@ def create_initial_state(user_request: str, working_directory: str = ".") -> Age
         detected_languages=[],
         project_manifest_path="",
         guidelines_path="",
+        # Blockchain context
+        blockchain_tech=[],
+        hedera_network="testnet",
+        hedera_account_id="",
+        hedera_private_key="",
+        ai_provider="",
+        ai_provider_key="",
         next_agent="planner",
         plan="",
         implementation_results={},

@@ -20,6 +20,7 @@ if __name__ == "__main__" and __package__ is None:
     from .agents.planner import create_planner_agent
     from .agents.software_architect import create_software_architect_agent
     from .agents.coder import create_coder_agent
+    from .agents.hedera_agent import create_hedera_agent
     from .agents.tester import create_tester_agent
     from .agents.error_recovery import create_error_recovery_agent
 else:
@@ -28,6 +29,7 @@ else:
     from .agents.planner import create_planner_agent
     from .agents.software_architect import create_software_architect_agent
     from .agents.coder import create_coder_agent
+    from .agents.hedera_agent import create_hedera_agent
     from .agents.tester import create_tester_agent
     from .agents.error_recovery import create_error_recovery_agent
 
@@ -53,6 +55,7 @@ class MultiAgentSystem:
         self.planner = create_planner_agent(api_key, base_url)
         self.software_architect = create_software_architect_agent(api_key, base_url)
         self.coder = create_coder_agent(api_key, base_url)
+        self.hedera_agent = create_hedera_agent(api_key, base_url)
         self.tester = create_tester_agent(api_key, base_url)
         self.error_recovery = create_error_recovery_agent(api_key, base_url)
 
@@ -74,6 +77,7 @@ class MultiAgentSystem:
         workflow.add_node("planner", self.planner)
         workflow.add_node("software_architect", self.software_architect)
         workflow.add_node("coder", self.coder)
+        workflow.add_node("hedera_agent", self.hedera_agent)
         workflow.add_node("tester", self.tester)
         workflow.add_node("error_recovery", self.error_recovery)
 
@@ -94,6 +98,7 @@ class MultiAgentSystem:
         all_agents = {
             "software_architect": "software_architect",
             "coder": "coder",
+            "hedera_agent": "hedera_agent",
             "tester": "tester",
             "error_recovery": "error_recovery",
             "orchestrator": "orchestrator",
@@ -104,6 +109,7 @@ class MultiAgentSystem:
         workflow.add_conditional_edges("planner", route_next, all_agents)
         workflow.add_conditional_edges("software_architect", route_next, all_agents)
         workflow.add_conditional_edges("coder", route_next, all_agents)
+        workflow.add_conditional_edges("hedera_agent", route_next, all_agents)
         workflow.add_conditional_edges("tester", route_next, all_agents)
         workflow.add_conditional_edges("error_recovery", route_next, all_agents)
         

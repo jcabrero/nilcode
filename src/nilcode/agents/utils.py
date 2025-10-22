@@ -9,6 +9,7 @@ from typing import Dict, List, Optional
 AGENT_EXECUTION_ORDER: List[str] = [
     "software_architect",
     "coder",  # Handles all implementation including dependencies, frontend, backend
+    "hedera_agent",  # Handles blockchain and Hedera operations
     "tester",
 ]
 
