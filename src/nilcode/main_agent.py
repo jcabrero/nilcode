@@ -30,6 +30,8 @@ else:
     from .agents.coder import create_coder_agent
     from .agents.tester import create_tester_agent
     from .agents.error_recovery import create_error_recovery_agent
+    from .agents.a2a_client import create_a2a_client_agent
+    from .a2a.registry import initialize_registry_from_config
 
 
 class MultiAgentSystem:
@@ -55,6 +57,7 @@ class MultiAgentSystem:
         self.coder = create_coder_agent(api_key, base_url)
         self.tester = create_tester_agent(api_key, base_url)
         self.error_recovery = create_error_recovery_agent(api_key, base_url)
+        self.a2a_client = create_a2a_client_agent(use_streaming=False)
 
         # Build the workflow graph
         self.workflow = self._build_workflow()
@@ -76,6 +79,7 @@ class MultiAgentSystem:
         workflow.add_node("coder", self.coder)
         workflow.add_node("tester", self.tester)
         workflow.add_node("error_recovery", self.error_recovery)
+        workflow.add_node("a2a_client", self.a2a_client)
 
         # Define the routing logic
         def route_next(state: AgentState) -> str:
@@ -97,6 +101,7 @@ class MultiAgentSystem:
             "tester": "tester",
             "error_recovery": "error_recovery",
             "orchestrator": "orchestrator",
+            "a2a_client": "a2a_client",
             "end": END
         }
 
@@ -106,6 +111,7 @@ class MultiAgentSystem:
         workflow.add_conditional_edges("coder", route_next, all_agents)
         workflow.add_conditional_edges("tester", route_next, all_agents)
         workflow.add_conditional_edges("error_recovery", route_next, all_agents)
+        workflow.add_conditional_edges("a2a_client", route_next, all_agents)
         
         # Orchestrator can route back or end
         workflow.add_conditional_edges(
@@ -200,6 +206,7 @@ def create_agent_system(
 # CLI interface
 def main():
     """Command-line interface for the multi-agent system."""
+    import asyncio
     from dotenv import load_dotenv
     load_dotenv()
 
@@ -208,6 +215,17 @@ def main():
         from .cli import interactive_mode, run_single_command, print_banner, print_error
     except ImportError:
         from cli import interactive_mode, run_single_command, print_banner, print_error
+
+    # Initialize A2A registry at startup
+    print("🌐 Initializing A2A external agent registry...")
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(initialize_registry_from_config())
+        loop.close()
+        print("✅ A2A registry initialized successfully\n")
+    except Exception as e:
+        print(f"⚠️  Warning: Failed to initialize A2A registry: {e}\n")
 
     # Check for version/changelog flags BEFORE requiring API key
     if len(sys.argv) > 1:

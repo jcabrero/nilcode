@@ -9,6 +9,7 @@ This agent is responsible for:
 """
 
 from typing import Dict, Any, List
+import asyncio
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
@@ -17,6 +18,7 @@ from ..tools.task_management import set_task_storage
 from .utils import determine_next_agent
 
 from ..prompts.claude import PROMPT
+from ..a2a.registry import get_global_registry
 
 
 PLANNER_SYSTEM_PROMPT = PROMPT.replace("{", "{{").replace("}", "}}") + """
@@ -242,6 +244,61 @@ class PlannerAgent:
         self.model = model  # Don't bind tools, we'll use JSON parsing
         self.name = "planner"
 
+    def _get_external_agents_info(self) -> List[Dict[str, Any]]:
+        """
+        Get information about available external A2A agents.
+
+        Returns:
+            List of external agent information dictionaries
+        """
+        try:
+            # Get the global registry (synchronous wrapper for async)
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            registry = loop.run_until_complete(get_global_registry())
+            external_agents = registry.get_all_agent_summaries()
+            loop.close()
+            return external_agents
+        except Exception as e:
+            print(f"  ⚠️  Warning: Could not fetch external agents: {e}")
+            return []
+
+    def _build_system_prompt_with_external_agents(self, external_agents: List[Dict[str, Any]]) -> str:
+        """
+        Build system prompt including external agents.
+
+        Args:
+            external_agents: List of external agent information
+
+        Returns:
+            Updated system prompt
+        """
+        base_prompt = PLANNER_SYSTEM_PROMPT
+
+        if external_agents:
+            # Build external agents section
+            external_agents_section = "\n\nADDITIONAL EXTERNAL AGENTS AVAILABLE VIA A2A PROTOCOL:\n"
+            for agent in external_agents:
+                agent_name = agent.get('name', 'unknown')
+                description = agent.get('description', 'No description')
+                capabilities = agent.get('capabilities', [])
+
+                external_agents_section += f"\n- {agent_name}: {description}\n"
+                if capabilities:
+                    external_agents_section += f"  Capabilities: {', '.join(capabilities[:3])}\n"
+
+            external_agents_section += "\nYou can assign tasks to these external agents using their exact names.\n"
+
+            # Insert before the agent types section
+            base_prompt = base_prompt.replace(
+                "You have access to these agent types (ONLY use these, no others):",
+                f"{external_agents_section}\nYou have access to these agent types:"
+            )
+
+            print(f"  🌐 Discovered {len(external_agents)} external A2A agents")
+
+        return base_prompt
+
     def __call__(self, state: AgentState) -> Dict[str, Any]:
         """
         Execute the planner agent.
@@ -254,9 +311,15 @@ class PlannerAgent:
         """
         print("\n🔍 Planner Agent: Analyzing request and creating plan...")
 
+        # Get external agents from A2A registry
+        external_agents_info = self._get_external_agents_info()
+
+        # Build dynamic system prompt with external agents
+        system_prompt = self._build_system_prompt_with_external_agents(external_agents_info)
+
         # Create the prompt
         prompt = ChatPromptTemplate.from_messages([
-            ("system", PLANNER_SYSTEM_PROMPT),
+            ("system", system_prompt),
             ("human", "User request: {user_request}\n\nCreate a JSON task plan.")
         ])
 

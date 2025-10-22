@@ -19,6 +19,7 @@ See [IMPROVEMENTS.md](IMPROVEMENTS.md) for detailed documentation of all enhance
 ## Features
 
 - **Multi-Agent Architecture**: 8 specialized agents for different development tasks
+- **A2A External Agent Integration**: Connect to external AI agents via Agent-to-Agent protocol 🆕
 - **Codebase Intelligence**: Semantic search, definition finding, and project analysis
 - **Autonomous Development**: From planning to implementation to testing to error fixing
 - **Full-Stack Support**: Frontend (React, Vue) and backend (Python, Node.js) code generation
@@ -83,6 +84,48 @@ The system consists of **8 specialized agents** working together:
 - Routes tasks appropriately
 - Aggregates results
 - Provides final summaries
+
+## A2A External Agent Integration 🆕
+
+NilCode now supports connecting to external AI agents using the **Agent-to-Agent (A2A) protocol**. This allows you to:
+
+- **Delegate specialized tasks** to external expert agents
+- **Extend capabilities** without modifying core code
+- **Build distributed agent systems** across multiple services
+- **Integrate third-party agents** that support A2A protocol
+
+### Quick Setup
+
+1. Configure external agents via environment variable:
+```bash
+export A2A_AGENTS='[{"name":"currency_converter","base_url":"http://localhost:9999"}]'
+```
+
+Or use a configuration file:
+```bash
+export A2A_CONFIG_PATH=a2a_agents.json
+```
+
+2. NilCode will automatically discover these agents at startup
+3. The planner can now assign tasks to external agents
+4. Results are seamlessly integrated into the workflow
+
+### Example
+
+```bash
+# Start an external A2A agent server
+python your_a2a_agent.py
+
+# Configure nilcode to use it
+export A2A_AGENTS='[{"name":"data_analyzer","base_url":"http://localhost:9999"}]'
+
+# Run nilcode - it can now delegate tasks to the external agent
+uv run nilcode "Analyze this dataset: [1, 2, 3, 4, 5]"
+```
+
+**📚 See [docs/A2A_INTEGRATION.md](docs/A2A_INTEGRATION.md) for complete documentation**
+
+**🚀 Run [examples/a2a_integration_demo.py](examples/a2a_integration_demo.py) for a working demo**
 
 ## Installation
 
