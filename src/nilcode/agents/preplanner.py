@@ -175,29 +175,42 @@ class PrePlannerAgent:
 
         # Route directly for specific intents; default to planner
         tasks_update = state.get("tasks", [])
+        user_request_lower = user_request.lower()
+
+        # Check for Hedera-specific keywords (highest priority)
+        hedera_keywords = ["hedera", "hbar", "hashgraph", "hedera account", "hedera balance", "hedera token", "hedera contract"]
+        is_hedera_query = any(keyword in user_request_lower for keyword in hedera_keywords)
+
         if intent_payload.get("intent") == "onchain_query":
-            next_agent = "onchain_detective"
-            # Ensure there is a detective task so the agent has work
-            import uuid
-            task = {
-                "id": str(uuid.uuid4())[:8],
-                "content": intent_payload.get("target") or user_request,
-                "status": "pending",
-                "activeForm": "Analyzing on-chain data",
-                "assignedTo": "onchain_detective",
-                "result": "",
-                # Enhanced fields (minimal defaults)
-                "requirements": ["Fetch balance and basic classification"],
-                "progress": "Not started",
-                "files_created": [],
-                "files_modified": [],
-                "dependencies": [],
-                "retry_count": 0,
-                "last_error": "",
-                "estimated_effort": "low",
-                "actual_effort": "not_started",
-            }
-            tasks_update = tasks_update + [task]
+            # Hedera queries go to planner → hedera-manager (via A2A)
+            if is_hedera_query:
+                next_agent = "planner"
+                print("  🔗 Hedera query detected - routing to planner for external hedera-manager agent")
+            # General onchain queries go to onchain_detective
+            else:
+                next_agent = "onchain_detective"
+                print("  🔍 General onchain query detected - routing to onchain_detective")
+                # Ensure there is a detective task so the agent has work
+                import uuid
+                task = {
+                    "id": str(uuid.uuid4())[:8],
+                    "content": intent_payload.get("target") or user_request,
+                    "status": "pending",
+                    "activeForm": "Analyzing on-chain data",
+                    "assignedTo": "onchain_detective",
+                    "result": "",
+                    # Enhanced fields (minimal defaults)
+                    "requirements": ["Fetch balance and basic classification"],
+                    "progress": "Not started",
+                    "files_created": [],
+                    "files_modified": [],
+                    "dependencies": [],
+                    "retry_count": 0,
+                    "last_error": "",
+                    "estimated_effort": "low",
+                    "actual_effort": "not_started",
+                }
+                tasks_update = tasks_update + [task]
         else:
             next_agent = "planner"
 

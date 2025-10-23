@@ -201,6 +201,7 @@ Please provide a comprehensive summary of what was accomplished, including:
             architecture_impl=arch_impl if arch_impl else "No architecture work details available",
             frontend_impl=frontend_impl if frontend_impl else "No frontend work details available",
             backend_impl=backend_impl if backend_impl else "No backend work details available",
+            onchain_impl=onchain_impl if onchain_impl else "No onchain work performed",
             test_results=state.get("test_results", {}).get("summary", "No test results"),
             external_agent_results=external_summary if external_summary else "No external agent results"
         )
