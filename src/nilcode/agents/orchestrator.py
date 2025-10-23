@@ -104,16 +104,25 @@ class OrchestratorAgent:
         frontend_impl = impl_results.get("frontend", "")
         backend_impl = impl_results.get("backend", "")
         
+        # Extract external agent results (A2A agents)
+        external_results = {}
+        for key, value in impl_results.items():
+            if key not in ["architecture", "frontend", "backend"]:
+                external_results[key] = value
+        
         # Debug: Show what we received
         print(f"  📊 State received:")
         print(f"     - Architecture result: {len(arch_impl)} chars")
         print(f"     - Frontend result: {len(frontend_impl)} chars")
         print(f"     - Backend result: {len(backend_impl)} chars")
+        print(f"     - External agent results: {len(external_results)} agents")
+        for agent_name, result in external_results.items():
+            print(f"       - {agent_name}: {len(result)} chars")
         print(f"     - Project files: {len(state.get('project_files', {}))} files")
         print(f"     - Tasks: {len(state.get('tasks', []))} tasks")
         
         # Fallback: If implementation_results are empty, build summary from tasks
-        if not arch_impl and not frontend_impl and not backend_impl:
+        if not arch_impl and not frontend_impl and not backend_impl and not external_results:
             print("  ⚠️  Implementation results empty, building from task results...")
             tasks = state.get("tasks", [])
             for task in tasks:
@@ -127,6 +136,9 @@ class OrchestratorAgent:
                         frontend_impl += result + "\n\n"
                     elif agent == "backend_developer" and not backend_impl:
                         backend_impl += result + "\n\n"
+                    elif agent not in ["planner", "software_architect", "frontend_developer", "backend_developer", "tester", "orchestrator"]:
+                        # This is an external agent result
+                        external_results[agent] = result
         
         # Build file list
         project_files = state.get("project_files", {})
@@ -137,6 +149,13 @@ class OrchestratorAgent:
         completed_tasks = [t for t in tasks if t.get("status") == "completed"]
         tasks_summary = f"Completed {len(completed_tasks)}/{len(tasks)} tasks:\n"
         tasks_summary += "\n".join([f"- {t.get('content', 'Unknown')}" for t in completed_tasks])
+
+        # Build external agent results summary
+        external_summary = ""
+        if external_results:
+            external_summary = "\n\nExternal Agent Results:\n"
+            for agent_name, result in external_results.items():
+                external_summary += f"\n**{agent_name} agent response:**\n{result}\n"
 
         # Create the prompt
         prompt = ChatPromptTemplate.from_messages([
@@ -158,11 +177,14 @@ Backend implementation: {backend_impl}
 
 Test results: {test_results}
 
+{external_agent_results}
+
 Please provide a comprehensive summary of what was accomplished, including:
 1. Overview of completed work
 2. Files created/modified (use the list above)
 3. Test and validation results
-4. Any recommendations or next steps""")
+4. External agent results (if any)
+5. Any recommendations or next steps""")
         ])
 
         # Format the prompt
@@ -174,7 +196,8 @@ Please provide a comprehensive summary of what was accomplished, including:
             architecture_impl=arch_impl if arch_impl else "No architecture work details available",
             frontend_impl=frontend_impl if frontend_impl else "No frontend work details available",
             backend_impl=backend_impl if backend_impl else "No backend work details available",
-            test_results=state.get("test_results", {}).get("summary", "No test results")
+            test_results=state.get("test_results", {}).get("summary", "No test results"),
+            external_agent_results=external_summary if external_summary else "No external agent results"
         )
 
         # Get final summary

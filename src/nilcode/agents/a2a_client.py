@@ -273,6 +273,7 @@ class A2AClientAgent:
 
             print(f"\n  ✅ Received response from {external_agent_name}")
             print(f"     Response length: {len(result_text)} characters")
+            print(f"     Response preview: {result_text[:200]}...")
 
             # Update task with result
             current_task["status"] = "completed"
@@ -285,13 +286,21 @@ class A2AClientAgent:
                     tasks[i] = current_task
                     break
 
+            # Store result in implementation_results for orchestrator
+            updated_impl_results = {
+                **state.get("implementation_results", {}),
+                external_agent_name: result_text
+            }
+            
+            print(f"  📊 Storing result in implementation_results:")
+            print(f"     - Agent: {external_agent_name}")
+            print(f"     - Result length: {len(result_text)} chars")
+            print(f"     - Total implementation results: {len(updated_impl_results)}")
+
             return {
                 "tasks": tasks,
                 "next_agent": "orchestrator",
-                "implementation_results": {
-                    **state.get("implementation_results", {}),
-                    external_agent_name: result_text
-                }
+                "implementation_results": updated_impl_results
             }
 
         except Exception as e:
