@@ -31,23 +31,33 @@ class A2AClientAgent:
     4. Updates task status and results
     """
 
-    def __init__(self, httpx_client: Optional[httpx.AsyncClient] = None, use_streaming: bool = False):
+    def __init__(self, httpx_client: Optional[httpx.AsyncClient] = None, use_streaming: bool = False, timeout: float = 30.0):
         """
         Initialize the A2A client agent.
 
         Args:
             httpx_client: Optional HTTP client for making requests
             use_streaming: Whether to use streaming responses
+            timeout: Request timeout in seconds (default: 30 seconds)
         """
         self.name = "a2a_client"
         self.httpx_client = httpx_client
         self.external_client_owned = httpx_client is None
         self.use_streaming = use_streaming
+        self.timeout = timeout
 
     async def __aenter__(self):
         """Async context manager entry."""
         if self.external_client_owned:
-            self.httpx_client = httpx.AsyncClient()
+            # Create HTTP client with extended timeout configuration
+            self.httpx_client = httpx.AsyncClient(
+                timeout=httpx.Timeout(
+                    connect=10.0,  # Connection timeout
+                    read=self.timeout,  # Read timeout (for server response)
+                    write=10.0,    # Write timeout
+                    pool=5.0       # Pool timeout
+                )
+            )
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -87,6 +97,7 @@ class A2AClientAgent:
             Updated state with task results from external agents
         """
         print("\n🌐 A2A Client Agent: Communicating with external agents...")
+        print(f"⏱️  Using timeout: {self.timeout} seconds")
 
         tasks = state.get("tasks", [])
         
@@ -122,7 +133,15 @@ class A2AClientAgent:
 
         # Create httpx client if needed
         if not self.httpx_client:
-            self.httpx_client = httpx.AsyncClient()
+            # Create HTTP client with extended timeout configuration
+            self.httpx_client = httpx.AsyncClient(
+                timeout=httpx.Timeout(
+                    connect=10.0,  # Connection timeout
+                    read=self.timeout,  # Read timeout (for server response)
+                    write=10.0,    # Write timeout
+                    pool=5.0       # Pool timeout
+                )
+            )
 
         # Get the registry and find the external agent
         registry = await get_global_registry()
@@ -178,6 +197,7 @@ class A2AClientAgent:
             if self.use_streaming:
                 # Use streaming for real-time updates
                 print("  📡 Using streaming mode...")
+                print(f"  ⏱️  Streaming timeout: {self.timeout} seconds")
                 streaming_request = SendStreamingMessageRequest(
                     id=str(uuid4()),
                     params=MessageSendParams(**send_message_payload)
@@ -201,6 +221,7 @@ class A2AClientAgent:
             else:
                 # Use non-streaming for complete response
                 print("  📡 Using non-streaming mode...")
+                print(f"  ⏱️  Request timeout: {self.timeout} seconds")
                 request = SendMessageRequest(
                     id=str(uuid4()),
                     params=MessageSendParams(**send_message_payload)
@@ -209,13 +230,46 @@ class A2AClientAgent:
                 response = await client.send_message(request)
                 response_data = response.model_dump(mode='json', exclude_none=True)
 
-                # Extract text from response
+                # Extract text from response using the same logic as the demo
+                # Method 1: Standard A2A response structure
                 if 'result' in response_data and 'message' in response_data['result']:
                     message_data = response_data['result']['message']
                     if 'parts' in message_data:
                         for part in message_data['parts']:
                             if part.get('kind') == 'text':
                                 result_text += part.get('text', '')
+                
+                # Method 2: Direct message structure
+                elif 'message' in response_data:
+                    message_data = response_data['message']
+                    if 'parts' in message_data:
+                        for part in message_data['parts']:
+                            if part.get('kind') == 'text':
+                                result_text += part.get('text', '')
+                
+                # Method 3: Look for any text content
+                elif 'content' in response_data:
+                    result_text = response_data['content']
+                
+                # Method 4: Look for text in any nested structure
+                else:
+                    def find_text_recursive(obj):
+                        if isinstance(obj, dict):
+                            for key, value in obj.items():
+                                if key in ['text', 'content', 'message'] and isinstance(value, str):
+                                    return value
+                                elif isinstance(value, (dict, list)):
+                                    result = find_text_recursive(value)
+                                    if result:
+                                        return result
+                        elif isinstance(obj, list):
+                            for item in obj:
+                                result = find_text_recursive(item)
+                                if result:
+                                    return result
+                        return None
+                    
+                    result_text = find_text_recursive(response_data) or ""
 
             print(f"\n  ✅ Received response from {external_agent_name}")
             print(f"     Response length: {len(result_text)} characters")
@@ -261,14 +315,15 @@ class A2AClientAgent:
             }
 
 
-def create_a2a_client_agent(use_streaming: bool = False) -> A2AClientAgent:
+def create_a2a_client_agent(use_streaming: bool = False, timeout: float = 30.0) -> A2AClientAgent:
     """
     Factory function to create an A2A client agent.
 
     Args:
         use_streaming: Whether to use streaming responses
+        timeout: Request timeout in seconds (default: 30 seconds)
 
     Returns:
         Configured A2AClientAgent
     """
-    return A2AClientAgent(use_streaming=use_streaming)
+    return A2AClientAgent(use_streaming=use_streaming, timeout=timeout)

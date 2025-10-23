@@ -89,7 +89,12 @@ class MultiAgentSystem:
         self.coder = create_coder_agent(api_key, base_url)
         self.tester = create_tester_agent(api_key, base_url)
         self.error_recovery = create_error_recovery_agent(api_key, base_url)
-        self.a2a_client = create_a2a_client_agent(use_streaming=False)
+        # Get timeout from config for A2A client
+        from .config import get_config
+        config = get_config()
+        a2a_timeout = config.get('llm_settings.timeout', 60)
+        
+        self.a2a_client = create_a2a_client_agent(use_streaming=False, timeout=a2a_timeout)
 
         # Build the workflow graph
         self.workflow = self._build_workflow()
