@@ -89,21 +89,26 @@ class A2AClientAgent:
         print("\n🌐 A2A Client Agent: Communicating with external agents...")
 
         tasks = state.get("tasks", [])
-        current_task_id = state.get("current_task_id", "")
-
-        # Find the current task
-        current_task = None
+        
+        # Find tasks assigned to external agents
+        external_tasks = []
         for task in tasks:
-            if task["id"] == current_task_id:
-                current_task = task
-                break
+            assigned_to = task.get("assignedTo", "")
+            if assigned_to and assigned_to not in ["planner", "software_architect", "frontend_developer", "backend_developer", "tester", "orchestrator"]:
+                external_tasks.append(task)
 
-        if not current_task:
-            logger.error(f"No task found with id {current_task_id}")
+        if not external_tasks:
+            logger.error("No tasks assigned to external agents found")
             return {
                 "next_agent": "orchestrator",
-                "error": f"Task {current_task_id} not found"
+                "error": "No external agent tasks found"
             }
+
+        # Use the first external task (in a real system, you might want to prioritize)
+        current_task = external_tasks[0]
+        current_task_id = current_task["id"]
+        
+        print(f"  🎯 Found {len(external_tasks)} external task(s), executing: {current_task_id}")
 
         # Get the external agent name from assignedTo
         external_agent_name = current_task.get("assignedTo", "")

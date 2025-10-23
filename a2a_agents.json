@@ -1,0 +1,10 @@
+{
+    "external_agents": [
+      {
+        "name": "hedera-manager",
+        "base_url": "http://localhost:9000",
+        "auth_token": null
+      }
+    ]
+  }
+  

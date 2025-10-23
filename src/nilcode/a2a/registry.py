@@ -53,6 +53,10 @@ class A2AAgentRegistry:
         self.httpx_client = httpx_client
         self.external_client_owned = httpx_client is None
         self.registry: Dict[str, ExternalAgent] = {}
+        
+        # Initialize httpx client if not provided
+        if self.httpx_client is None:
+            self.httpx_client = httpx.AsyncClient()
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -155,7 +159,13 @@ class A2AAgentRegistry:
 
         # Extract from skills if available
         if hasattr(agent_card, 'skills') and agent_card.skills:
-            capabilities.extend(agent_card.skills)
+            for skill in agent_card.skills:
+                if hasattr(skill, 'name'):
+                    capabilities.append(skill.name)
+                elif isinstance(skill, str):
+                    capabilities.append(skill)
+                else:
+                    capabilities.append(str(skill))
 
         # Extract from metadata
         if hasattr(agent_card, 'metadata') and isinstance(agent_card.metadata, dict):
@@ -254,6 +264,16 @@ class A2AAgentRegistry:
 _global_registry: Optional[A2AAgentRegistry] = None
 
 
+def get_global_registry_sync() -> Optional[A2AAgentRegistry]:
+    """
+    Get the global agent registry synchronously.
+    
+    Returns:
+        Global A2AAgentRegistry instance or None if not initialized
+    """
+    return _global_registry
+
+
 async def get_global_registry() -> A2AAgentRegistry:
     """
     Get or create the global agent registry.
@@ -282,39 +302,40 @@ async def initialize_registry_from_config(config_path: Optional[str] = None) -> 
 
     global _global_registry
 
-    # Create new registry
-    async with A2AAgentRegistry() as registry:
-        # Priority 1: Use provided config_path
-        if config_path and os.path.exists(config_path):
-            logger.info(f"Loading A2A agents from config file: {config_path}")
-            with open(config_path, 'r') as f:
+    # Create new registry (don't use async with to avoid closing it)
+    registry = A2AAgentRegistry()
+    
+    # Priority 1: Use provided config_path
+    if config_path and os.path.exists(config_path):
+        logger.info(f"Loading A2A agents from config file: {config_path}")
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+
+        agents_config = config.get('external_agents', [])
+        await registry.discover_multiple_agents(agents_config)
+    else:
+        # Priority 2: Check A2A_CONFIG_PATH environment variable
+        env_config_path = os.getenv('A2A_CONFIG_PATH')
+        if env_config_path and os.path.exists(env_config_path):
+            logger.info(f"Loading A2A agents from A2A_CONFIG_PATH: {env_config_path}")
+            with open(env_config_path, 'r') as f:
                 config = json.load(f)
 
             agents_config = config.get('external_agents', [])
             await registry.discover_multiple_agents(agents_config)
         else:
-            # Priority 2: Check A2A_CONFIG_PATH environment variable
-            env_config_path = os.getenv('A2A_CONFIG_PATH')
-            if env_config_path and os.path.exists(env_config_path):
-                logger.info(f"Loading A2A agents from A2A_CONFIG_PATH: {env_config_path}")
-                with open(env_config_path, 'r') as f:
-                    config = json.load(f)
-
-                agents_config = config.get('external_agents', [])
-                await registry.discover_multiple_agents(agents_config)
+            # Priority 3: Load from A2A_AGENTS environment variable
+            # Example: A2A_AGENTS='[{"name":"agent1","base_url":"http://localhost:9999"}]'
+            agents_env = os.getenv('A2A_AGENTS')
+            if agents_env:
+                try:
+                    logger.info("Loading A2A agents from A2A_AGENTS environment variable")
+                    agents_config = json.loads(agents_env)
+                    await registry.discover_multiple_agents(agents_config)
+                except Exception as e:
+                    logger.error(f"Failed to parse A2A_AGENTS environment variable: {e}")
             else:
-                # Priority 3: Load from A2A_AGENTS environment variable
-                # Example: A2A_AGENTS='[{"name":"agent1","base_url":"http://localhost:9999"}]'
-                agents_env = os.getenv('A2A_AGENTS')
-                if agents_env:
-                    try:
-                        logger.info("Loading A2A agents from A2A_AGENTS environment variable")
-                        agents_config = json.loads(agents_env)
-                        await registry.discover_multiple_agents(agents_config)
-                    except Exception as e:
-                        logger.error(f"Failed to parse A2A_AGENTS environment variable: {e}")
-                else:
-                    logger.info("No A2A agent configuration found")
+                logger.info("No A2A agent configuration found")
 
-        _global_registry = registry
-        return registry
+    _global_registry = registry
+    return registry

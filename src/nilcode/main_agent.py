@@ -8,7 +8,7 @@ and provides the main interface for the multi-agent system.
 import os
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from langgraph.graph import StateGraph, END
 
 # Handle both direct script execution and module imports
@@ -49,6 +49,38 @@ class MultiAgentSystem:
         """
         self.api_key = api_key
         self.base_url = base_url
+
+        # Initialize A2A registry if not already done
+        import asyncio
+        from .a2a.registry import get_global_registry_sync, initialize_registry_from_config
+        
+        if get_global_registry_sync() is None:
+            print("🌐 Initializing A2A external agent registry...")
+            try:
+                # Check if we're already in an event loop
+                try:
+                    loop = asyncio.get_running_loop()
+                    # We're in an async context, can't use run_until_complete
+                    print("⚠️  Warning: Cannot initialize A2A registry in async context")
+                except RuntimeError:
+                    # No event loop running, safe to create one
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    registry = loop.run_until_complete(initialize_registry_from_config('a2a_agents.json'))
+                    loop.close()
+                    print("✅ A2A registry initialized successfully")
+                    
+                    # Print discovered agents
+                    global_registry = get_global_registry_sync()
+                    if global_registry:
+                        external_agents = global_registry.get_all_agent_summaries()
+                        if external_agents:
+                            print(f"🌐 Found {len(external_agents)} external A2A agents")
+                            for agent in external_agents:
+                                print(f"  - {agent['name']}: {agent['description']}")
+                        print()
+            except Exception as e:
+                print(f"⚠️  Warning: Failed to initialize A2A registry: {e}")
 
         # Create all agents
         self.orchestrator = create_orchestrator_agent(api_key, base_url)
@@ -221,9 +253,26 @@ def main():
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(initialize_registry_from_config())
+        registry = loop.run_until_complete(initialize_registry_from_config())
         loop.close()
         print("✅ A2A registry initialized successfully\n")
+        
+        # Update planner with external agents information
+        from .a2a.registry import get_global_registry
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        global_registry = loop.run_until_complete(get_global_registry())
+        external_agents = global_registry.get_all_agent_summaries()
+        loop.close()
+        
+        if external_agents:
+            print(f"🌐 Found {len(external_agents)} external A2A agents")
+            for agent in external_agents:
+                print(f"  - {agent['name']}: {agent['description']}")
+            print()
+            
+            # Store external agents for later use
+            _external_agents_cache = external_agents
     except Exception as e:
         print(f"⚠️  Warning: Failed to initialize A2A registry: {e}\n")
 
@@ -250,6 +299,7 @@ def main():
     # Create the agent system (requires API key)
     try:
         agent_system = create_agent_system()
+            
     except ValueError as e:
         print_error(str(e))
         return 1

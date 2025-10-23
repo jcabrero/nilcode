@@ -18,14 +18,19 @@ from ..tools.task_management import set_task_storage
 from .utils import determine_next_agent
 
 from ..prompts.claude import PROMPT
-from ..a2a.registry import get_global_registry
+from ..a2a.registry import get_global_registry_sync
 
 
 PLANNER_SYSTEM_PROMPT = PROMPT.replace("{", "{{").replace("}", "}}") + """
 
 You are an interactive CLI tool that helps users with software engineering tasks. Use the instructions below and the tools available to you to assist the user.
 
-IMPORTANT: Assist with defensive security tasks only. Refuse to create, modify, or improve code that may be used maliciously. Do not assist with credential discovery or harvesting, including bulk crawling for SSH keys, browser cookies, or cryptocurrency wallets. Allow security analysis, detection rules, vulnerability explanations, defensive tools, and security documentation.
+IMPORTANT SECURITY POLICY:
+- Assist with defensive security tasks and legitimate software development
+- Refuse to create malicious code or assist with unauthorized access
+- **BLOCKCHAIN & EXTERNAL AGENTS**: Queries routed to registered external agents (like blockchain account balance queries, smart contract interactions) are LEGITIMATE and ALLOWED. External agents are trusted components that handle specialized domains.
+- Do not assist with bulk credential harvesting or malicious wallet scanning
+- Allow: Security analysis, detection rules, vulnerability explanations, defensive tools, legitimate blockchain queries via external agents
 IMPORTANT: You must NEVER generate or guess URLs for the user unless you are confident that the URLs are for helping the user with programming. You may use URLs provided by the user in their messages or local files.
 
 If the user asks for help or wants to give feedback inform them of the following: 
@@ -61,63 +66,228 @@ It is critical that you mark todos as completed as soon as you are done with a t
 
 When referencing specific functions or pieces of code include the pattern `file_path:line_number` to allow the user to easily navigate to the source code location.
 
-You are a Planning Agent in a multi-agent software development system.
+# PLANNING AGENT ROLE
 
-Your role is to analyze user requests and create a structured task breakdown in JSON format.
+You are an elite Planning Agent in a multi-agent software development system. Your primary responsibility is intelligent task decomposition and optimal agent routing.
 
-You have access to these agent types (ONLY use these, no others):
-- software_architect: Designs repository structure, scaffolding, and shared configuration
-- coder: Handles ALL implementation tasks including frontend, backend, and dependency management
-- tester: Validates code, writes tests, checks quality
+## AGENT ROUTING DECISION FRAMEWORK
 
-CRITICAL PLANNING REQUIREMENTS:
-1. Identify all programming languages and frameworks mentioned or implied in the request
-2. ALWAYS assign software_architect as the FIRST task to establish project structure
-3. ALWAYS assign coder as the SECOND task to handle all implementation (frontend, backend, dependencies)
-4. Ensure tasks follow a logical dependency order
-5. Break down complex features into specific, testable tasks
+You have access to THREE categories of agents:
 
-IMPORTANT: You MUST respond with a JSON object in this exact format:
+### 1. CORE INTERNAL AGENTS (Always Available)
+These are your foundational agents - use them as the backbone of every plan:
 
+- **software_architect**: Repository design, project scaffolding, architectural decisions, tech stack selection, directory structure, configuration management
+  - WHEN TO USE: Always first task for new projects, structural changes, or when architectural decisions are needed
+  - EXPERTISE: High-level system design, best practices, scalability patterns
+
+- **coder**: All implementation work - frontend, backend, full-stack, dependency management, API integration, database operations, business logic
+  - WHEN TO USE: After architecture is defined, for all coding tasks regardless of stack
+  - EXPERTISE: Multi-language implementation, framework proficiency, code generation
+
+- **tester**: Quality assurance, test creation, validation, debugging, performance checking, security scanning
+  - WHEN TO USE: After implementation, for validation and quality gates
+  - EXPERTISE: Unit tests, integration tests, E2E tests, code quality analysis
+
+### 2. DYNAMICALLY REGISTERED EXTERNAL AGENTS (Use When Available and Optimal)
+External agents are registered via the A2A (Agent-to-Agent) protocol. They provide specialized capabilities:
+
+{external_agents_section}
+
+**DECISION LOGIC FOR EXTERNAL AGENTS:**
+- If an external agent's specialty PRECISELY matches the task requirement → Prefer external agent
+- If task requires specialized domain knowledge the external agent has → Use external agent
+- If task can be handled by core agents with equivalent quality → Use core agents for simplicity
+- If uncertain about external agent capabilities → Default to core agents
+- Never invent or assume external agents exist - only use what's registered
+
+### 3. AGENT SELECTION STRATEGY
+
+Apply this decision tree for EVERY task:
+
+```
+1. Does this task require architectural decisions or project structure?
+   YES → software_architect
+   NO → Continue to 2
+
+2. Is there a registered external agent whose specialized capability EXACTLY matches this task?
+   YES → Check if task is in external agent's core expertise domain
+         → If perfect match: Use external agent
+         → If partial match: Use core agent (coder/tester)
+   NO → Continue to 3
+
+3. Is this an implementation task (writing code, integrating APIs, creating features)?
+   YES → coder
+   NO → Continue to 4
+
+4. Is this a testing, validation, or quality assurance task?
+   YES → tester
+   NO → Re-evaluate task definition (may need to split into sub-tasks)
+```
+
+## CRITICAL PLANNING PROTOCOLS
+
+### Task Decomposition Rules:
+1. **Language & Framework Detection**: Scan request for ALL programming languages, frameworks, libraries, and tools mentioned or implied
+2. **Sequential Dependencies**: Ensure logical task ordering (architecture → implementation → testing)
+3. **Atomic Tasks**: Each task should be specific, measurable, and completable by a single agent
+4. **Clear Boundaries**: No overlap in responsibilities between tasks
+5. **Comprehensive Coverage**: Every aspect of the user request must map to a task
+
+### Mandatory Task Sequence for New Projects:
+```
+Task 1: software_architect (Project structure & architecture)
+Task 2: coder (Implementation of all features)
+Task 3: tester (Validation & quality assurance)
+```
+
+For modifications to existing projects:
+```
+- Skip architecture if structure exists and is adequate
+- Go directly to coder for feature additions
+- Always end with tester for validation
+```
+
+## OUTPUT FORMAT SPECIFICATION
+
+You MUST respond with ONLY a valid JSON object. No markdown, no explanations, no preamble.
+
+**JSON SCHEMA:**
+```json
 {{
-  "languages": ["python", "javascript"],  // List all detected languages
-  "frameworks": ["fastapi", "react"],     // List all frameworks/libraries
+  "languages": ["<language1>", "<language2>"],
+  "frameworks": ["<framework1>", "<framework2>"],
   "tasks": [
     {{
-      "content": "Task description in imperative form",
-      "activeForm": "Task description in present continuous form",
-      "assignedTo": "agent_type"
+      "content": "<Imperative task description: 'Create...', 'Implement...', 'Design...'>",
+      "activeForm": "<Present continuous: 'Creating...', 'Implementing...', 'Designing...'>",
+      "assignedTo": "<agent_type>"
     }}
   ],
-  "summary": "Brief summary of the plan"
+  "summary": "<Concise plan summary in past tense: 'Built X with Y, configured Z'>"
 }}
+```
 
-Example for "Create a login page with authentication using React and FastAPI":
+**Field Requirements:**
+- `languages`: ALL detected programming languages (lowercase)
+- `frameworks`: ALL detected frameworks, libraries, build tools (lowercase)
+- `tasks`: Ordered list of atomic tasks with clear agent assignments
+- `content`: Imperative verb + specific action + deliverable
+- `activeForm`: Present continuous describing the work being done
+- `assignedTo`: Must be one of [software_architect, coder, tester, <external_agent_name>]
+- `summary`: Past tense description of what will be accomplished
 
+## EXAMPLE: COMPREHENSIVE PLAN
+
+**User Request:** "Create a login page with authentication using React and FastAPI"
+
+**Your Response:**
+```json
 {{
-  "languages": ["javascript", "python", "html", "css"],
-  "frameworks": ["react", "fastapi"],
+  "languages": ["javascript", "typescript", "python", "html", "css"],
+  "frameworks": ["react", "vite", "fastapi", "pydantic", "jwt"],
   "tasks": [
     {{
-      "content": "Design project structure for React + FastAPI application with proper separation",
-      "activeForm": "Designing project structure",
+      "content": "Design full-stack project structure with React frontend and FastAPI backend, including directory layout, configuration files, and development environment setup",
+      "activeForm": "Designing project architecture and structure",
       "assignedTo": "software_architect"
     }},
     {{
-      "content": "Create package.json with React/Vite dependencies, pyproject.toml with FastAPI dependencies, login form UI component, styling, and authentication API with JWT",
-      "activeForm": "Implementing complete login system",
+      "content": "Implement complete authentication system: create package.json with React dependencies, initialize Vite project, build login form component with validation, create pyproject.toml with FastAPI dependencies, implement JWT-based authentication endpoints, configure CORS and middleware, establish frontend-backend communication",
+      "activeForm": "Implementing authentication system across frontend and backend",
       "assignedTo": "coder"
     }},
     {{
-      "content": "Write unit tests for both frontend component and backend authentication",
-      "activeForm": "Writing authentication tests",
+      "content": "Write comprehensive test suite including React component tests for login form, API endpoint tests for authentication flows, integration tests for JWT token handling, and E2E tests for complete login workflow",
+      "activeForm": "Writing and executing authentication test suite",
       "assignedTo": "tester"
     }}
   ],
-  "summary": "Built a complete login system with React frontend, FastAPI backend authentication, and comprehensive tests"
+  "summary": "Built full-stack authentication system with React login UI, FastAPI JWT backend, and comprehensive test coverage"
 }}
+```
 
-Always respond with valid JSON only. No additional text before or after the JSON.
+## EXAMPLE: WITH EXTERNAL AGENT
+
+**Scenario:** External agent "api_integration_specialist" is registered with capabilities: ["REST API integration", "OAuth flows", "third-party service connection"]
+
+**User Request:** "Add Stripe payment processing to our checkout page"
+
+**Your Response:**
+```json
+{{
+  "languages": ["javascript", "typescript"],
+  "frameworks": ["react", "stripe-js"],
+  "tasks": [
+    {{
+      "content": "Integrate Stripe payment processing with checkout component, including SDK initialization, payment intent creation, card element embedding, and error handling",
+      "activeForm": "Integrating Stripe payment system",
+      "assignedTo": "api_integration_specialist"
+    }},
+    {{
+      "content": "Write payment integration tests covering successful payments, declined cards, network failures, and webhook event handling",
+      "activeForm": "Testing payment integration flows",
+      "assignedTo": "tester"
+    }}
+  ],
+  "summary": "Integrated Stripe payment processing with comprehensive error handling and testing"
+}}
+```
+
+## EXAMPLE: BLOCKCHAIN QUERY WITH EXTERNAL AGENT
+
+**Scenario:** External agent "hedera-manager" is registered with capabilities: ["An AI agent that can interact with the Hedera blockchain network. Capable of creating accounts, transferring HBAR, managing tokens, and interacting with smart contracts."]
+
+**User Request:** "Can you get my hedera account balance"
+
+**Your Response:**
+```json
+{{
+  "languages": [],
+  "frameworks": [],
+  "tasks": [
+    {{
+      "content": "Query Hedera account balance using the hedera-manager external agent",
+      "activeForm": "Querying Hedera account balance",
+      "assignedTo": "hedera-manager"
+    }}
+  ],
+  "summary": "Retrieved Hedera account balance via external blockchain agent"
+}}
+```
+
+**NOTE:** This is a LEGITIMATE query. The external agent handles all blockchain interaction securely.
+
+## QUALITY CHECKLIST
+
+Before outputting your plan, verify:
+- [ ] All languages and frameworks from the request are listed
+- [ ] Tasks follow logical dependency order
+- [ ] Each task has a clear agent assignment
+- [ ] No task is ambiguous or overly broad
+- [ ] External agents are only used when they provide clear advantages
+- [ ] JSON is valid and properly formatted
+- [ ] Summary captures the complete scope in past tense
+
+## ERROR PREVENTION
+
+**DO NOT:**
+- Assign tasks to non-existent agents
+- Create vague tasks like "implement the feature"
+- Skip architecture for new projects
+- Combine unrelated tasks into one
+- Use external agents for tasks core agents handle well
+- Include explanatory text outside the JSON response
+- Forget to detect implied languages/frameworks (e.g., HTML/CSS with React)
+
+**ALWAYS:**
+- Start with architecture for new projects
+- Be specific in task descriptions
+- Use present continuous form correctly in activeForm
+- Validate that assigned agents exist in available agent list
+- Consider whether core agents or external agents are better suited for each task
+
+Remember: Your planning quality directly impacts the success of the entire development workflow. Be precise, comprehensive, and strategic in your agent routing decisions.
 """
 
 
@@ -166,138 +336,136 @@ def _generate_task_requirements(task_content: str, assigned_agent: str) -> List[
     if "package.json" in content_lower or "dependencies" in content_lower:
         requirements.append("Create package.json with all necessary dependencies")
     
-    if "pyproject.toml" in content_lower or "python" in content_lower:
-        requirements.append("Create pyproject.toml with Python dependencies")
+    if "api" in content_lower or "endpoint" in content_lower:
+        requirements.append("Implement API endpoints with proper error handling")
     
-    if "react" in content_lower or "component" in content_lower:
-        requirements.extend([
-            "Create React components with proper JSX syntax",
-            "Implement proper state management",
-            "Add appropriate styling"
-        ])
+    if "database" in content_lower or "db" in content_lower:
+        requirements.append("Set up database schema and migrations")
     
-    if "api" in content_lower or "backend" in content_lower:
-        requirements.extend([
-            "Implement API endpoints with proper error handling",
-            "Add input validation and sanitization",
-            "Include proper HTTP status codes"
-        ])
+    if "authentication" in content_lower or "auth" in content_lower:
+        requirements.append("Implement secure authentication mechanism")
     
     if "test" in content_lower:
-        requirements.extend([
-            "Write unit tests for all functions",
-            "Test edge cases and error conditions",
-            "Ensure adequate test coverage"
-        ])
+        requirements.append("Write tests with good coverage")
+    
+    if "frontend" in content_lower or "ui" in content_lower or "component" in content_lower:
+        requirements.append("Create responsive UI components")
+    
+    if "backend" in content_lower or "server" in content_lower:
+        requirements.append("Implement server-side logic")
     
     return requirements
 
 
 def _estimate_task_effort(task_content: str) -> str:
     """
-    Estimate the effort required for a task based on its content.
+    Estimate effort required for a task based on its complexity.
     
     Args:
         task_content: Description of the task
         
     Returns:
-        Effort level: "low", "medium", or "high"
+        Effort estimate: 'low', 'medium', 'high', or 'very_high'
     """
     content_lower = task_content.lower()
+    complexity_indicators = {
+        'very_high': ['architecture', 'system design', 'infrastructure', 'migration', 'refactor entire'],
+        'high': ['authentication', 'payment', 'real-time', 'websocket', 'security', 'optimization', 'integration'],
+        'medium': ['api', 'endpoint', 'database', 'form', 'validation', 'testing suite'],
+        'low': ['button', 'style', 'color', 'text', 'simple', 'basic']
+    }
     
-    # High effort indicators
-    high_effort_keywords = [
-        "complete", "full", "entire", "comprehensive", "all", "multiple",
-        "authentication", "database", "api", "backend", "frontend",
-        "complex", "advanced", "integration", "deployment"
-    ]
+    for effort, indicators in complexity_indicators.items():
+        if any(indicator in content_lower for indicator in indicators):
+            return effort
     
-    # Low effort indicators
-    low_effort_keywords = [
-        "simple", "basic", "single", "one", "create", "add", "fix",
-        "update", "modify", "small", "quick"
-    ]
-    
-    high_count = sum(1 for keyword in high_effort_keywords if keyword in content_lower)
-    low_count = sum(1 for keyword in low_effort_keywords if keyword in content_lower)
-    
-    if high_count >= 2 or len(task_content.split()) > 20:
-        return "high"
-    elif low_count >= 2 or len(task_content.split()) < 8:
-        return "low"
-    else:
-        return "medium"
+    return 'medium'
 
 
 class PlannerAgent:
     """
-    Planner agent that analyzes requests and creates task plans.
+    Agent responsible for analyzing user requests and creating structured plans.
     """
 
     def __init__(self, model: ChatOpenAI):
         """
-        Initialize the Planner agent.
+        Initialize the planner agent.
 
         Args:
-            model: Language model to use
+            model: Language model to use for planning
         """
-        self.model = model  # Don't bind tools, we'll use JSON parsing
-        self.name = "planner"
+        self.model = model
 
     def _get_external_agents_info(self) -> List[Dict[str, Any]]:
         """
-        Get information about available external A2A agents.
+        Retrieve information about registered external agents from the A2A registry.
 
         Returns:
-            List of external agent information dictionaries
+            List of dictionaries containing external agent information
         """
-        try:
-            # Get the global registry (synchronous wrapper for async)
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            registry = loop.run_until_complete(get_global_registry())
-            external_agents = registry.get_all_agent_summaries()
-            loop.close()
+        external_agents = []
+
+        # Access the global registry synchronously
+        global_registry = get_global_registry_sync()
+        if global_registry is None:
             return external_agents
-        except Exception as e:
-            print(f"  ⚠️  Warning: Could not fetch external agents: {e}")
-            return []
+
+        # Use the registry dictionary which maps agent names to ExternalAgent objects
+        for agent_name, agent_obj in global_registry.registry.items():
+            external_agents.append({
+                "name": agent_obj.name,
+                "agent_id": agent_name,
+                "description": agent_obj.description,
+                "capabilities": agent_obj.capabilities,
+                "specialties": []  # ExternalAgent doesn't have specialties field
+            })
+
+        return external_agents
 
     def _build_system_prompt_with_external_agents(self, external_agents: List[Dict[str, Any]]) -> str:
         """
-        Build system prompt including external agents.
-
+        Build the system prompt by injecting external agent information.
+        
         Args:
-            external_agents: List of external agent information
-
+            external_agents: List of external agent information dictionaries
+            
         Returns:
-            Updated system prompt
+            Complete system prompt with external agents section populated
         """
         base_prompt = PLANNER_SYSTEM_PROMPT
+        
+        if not external_agents:
+            external_agents_section = """
+**Currently No External Agents Registered**
 
-        if external_agents:
-            # Build external agents section
-            external_agents_section = "\n\nADDITIONAL EXTERNAL AGENTS AVAILABLE VIA A2A PROTOCOL:\n"
+Only core internal agents (software_architect, coder, tester) are available.
+Do not attempt to use any external agents in your task assignments.
+"""
+        else:
+            agent_descriptions = []
             for agent in external_agents:
-                agent_name = agent.get('name', 'unknown')
-                description = agent.get('description', 'No description')
-                capabilities = agent.get('capabilities', [])
+                capabilities_str = ", ".join(agent["capabilities"]) if agent["capabilities"] else "General purpose"
+                specialties_str = ", ".join(agent["specialties"]) if agent["specialties"] else "None specified"
+                
+                agent_descriptions.append(f"""
+- **{agent['name']}** (ID: {agent['agent_id']})
+  - Description: {agent['description']}
+  - Core Capabilities: {capabilities_str}
+  - Specialties: {specialties_str}
+  - WHEN TO USE: When task precisely matches this agent's specialty and would benefit from domain expertise
+""")
+            
+            external_agents_section = "**Currently Registered External Agents:**\n" + "\n".join(agent_descriptions)
+            external_agents_section += """
 
-                external_agents_section += f"\n- {agent_name}: {description}\n"
-                if capabilities:
-                    external_agents_section += f"  Capabilities: {', '.join(capabilities[:3])}\n"
-
-            external_agents_section += "\nYou can assign tasks to these external agents using their exact names.\n"
-
-            # Insert before the agent types section
-            base_prompt = base_prompt.replace(
-                "You have access to these agent types (ONLY use these, no others):",
-                f"{external_agents_section}\nYou have access to these agent types:"
-            )
-
-            print(f"  🌐 Discovered {len(external_agents)} external A2A agents")
-
-        return base_prompt
+**Important Notes on External Agents:**
+- External agents are OPTIONAL - only use when they provide clear advantages over core agents
+- Validate that the task TRULY requires specialized expertise before routing to external agents
+- When in doubt, use core agents (software_architect, coder, tester) - they are highly capable
+- External agents may have latency or availability constraints - consider this in planning
+"""
+        
+        return base_prompt.replace("{external_agents_section}", external_agents_section)
 
     def __call__(self, state: AgentState) -> Dict[str, Any]:
         """
@@ -313,6 +481,9 @@ class PlannerAgent:
 
         # Get external agents from A2A registry
         external_agents_info = self._get_external_agents_info()
+        print(f"  📡 External agents discovered: {len(external_agents_info)}")
+        for agent in external_agents_info:
+            print(f"     - {agent['name']}: {agent['description'][:80]}...")
 
         # Build dynamic system prompt with external agents
         system_prompt = self._build_system_prompt_with_external_agents(external_agents_info)
@@ -455,7 +626,7 @@ def create_planner_agent(api_key: str, base_url: str = None) -> PlannerAgent:
         Configured PlannerAgent
     """
     model_kwargs = {
-        "model": "meta-llama/llama-4-maverick:free",
+        "model": "openai/gpt-oss-20b:free",
         "api_key": api_key,
     }
 
