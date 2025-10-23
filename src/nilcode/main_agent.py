@@ -8,7 +8,7 @@ and provides the main interface for the multi-agent system.
 import os
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from langgraph.graph import StateGraph, END
 
 # Handle both direct script execution and module imports
@@ -34,6 +34,8 @@ else:
     from .agents.tester import create_tester_agent
     from .agents.error_recovery import create_error_recovery_agent
     from .agents.onchain_detective import create_onchain_detective_agent
+    from .agents.a2a_client import create_a2a_client_agent
+    from .a2a.registry import initialize_registry_from_config
 
 
 class MultiAgentSystem:
@@ -52,6 +54,38 @@ class MultiAgentSystem:
         self.api_key = api_key
         self.base_url = base_url
 
+        # Initialize A2A registry if not already done
+        import asyncio
+        from .a2a.registry import get_global_registry_sync, initialize_registry_from_config
+        
+        if get_global_registry_sync() is None:
+            print("🌐 Initializing A2A external agent registry...")
+            try:
+                # Check if we're already in an event loop
+                try:
+                    loop = asyncio.get_running_loop()
+                    # We're in an async context, can't use run_until_complete
+                    print("⚠️  Warning: Cannot initialize A2A registry in async context")
+                except RuntimeError:
+                    # No event loop running, safe to create one
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    registry = loop.run_until_complete(initialize_registry_from_config('a2a_agents.json'))
+                    loop.close()
+                    print("✅ A2A registry initialized successfully")
+                    
+                    # Print discovered agents
+                    global_registry = get_global_registry_sync()
+                    if global_registry:
+                        external_agents = global_registry.get_all_agent_summaries()
+                        if external_agents:
+                            print(f"🌐 Found {len(external_agents)} external A2A agents")
+                            for agent in external_agents:
+                                print(f"  - {agent['name']}: {agent['description']}")
+                        print()
+            except Exception as e:
+                print(f"⚠️  Warning: Failed to initialize A2A registry: {e}")
+
         # Create all agents
         self.orchestrator = create_orchestrator_agent(api_key, base_url)
         self.preplanner = create_preplanner_agent(api_key, base_url)
@@ -61,6 +95,12 @@ class MultiAgentSystem:
         self.tester = create_tester_agent(api_key, base_url)
         self.error_recovery = create_error_recovery_agent(api_key, base_url)
         self.onchain_detective = create_onchain_detective_agent(api_key, base_url)
+        # Get timeout from config for A2A client
+        from .config import get_config
+        config = get_config()
+        a2a_timeout = config.get('llm_settings.timeout', 60)
+        
+        self.a2a_client = create_a2a_client_agent(use_streaming=False, timeout=a2a_timeout)
 
         # Build the workflow graph
         self.workflow = self._build_workflow()
@@ -84,6 +124,7 @@ class MultiAgentSystem:
         workflow.add_node("tester", self.tester)
         workflow.add_node("error_recovery", self.error_recovery)
         workflow.add_node("onchain_detective", self.onchain_detective)
+        workflow.add_node("a2a_client", self.a2a_client)
 
         # Define the routing logic
         def route_next(state: AgentState) -> str:
@@ -107,6 +148,7 @@ class MultiAgentSystem:
             "error_recovery": "error_recovery",
             "orchestrator": "orchestrator",
             "onchain_detective": "onchain_detective",
+            "a2a_client": "a2a_client",
             "end": END
         }
 
@@ -118,6 +160,7 @@ class MultiAgentSystem:
         workflow.add_conditional_edges("tester", route_next, all_agents)
         workflow.add_conditional_edges("error_recovery", route_next, all_agents)
         workflow.add_conditional_edges("onchain_detective", route_next, all_agents)
+        workflow.add_conditional_edges("a2a_client", route_next, all_agents)
         
         # Orchestrator can route back or end
         workflow.add_conditional_edges(
@@ -212,6 +255,7 @@ def create_agent_system(
 # CLI interface
 def main():
     """Command-line interface for the multi-agent system."""
+    import asyncio
     from dotenv import load_dotenv
     load_dotenv()
 
@@ -220,6 +264,34 @@ def main():
         from .cli import interactive_mode, run_single_command, print_banner, print_error
     except ImportError:
         from cli import interactive_mode, run_single_command, print_banner, print_error
+
+    # Initialize A2A registry at startup
+    print("🌐 Initializing A2A external agent registry...")
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        registry = loop.run_until_complete(initialize_registry_from_config())
+        loop.close()
+        print("✅ A2A registry initialized successfully\n")
+        
+        # Update planner with external agents information
+        from .a2a.registry import get_global_registry
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        global_registry = loop.run_until_complete(get_global_registry())
+        external_agents = global_registry.get_all_agent_summaries()
+        loop.close()
+        
+        if external_agents:
+            print(f"🌐 Found {len(external_agents)} external A2A agents")
+            for agent in external_agents:
+                print(f"  - {agent['name']}: {agent['description']}")
+            print()
+            
+            # Store external agents for later use
+            _external_agents_cache = external_agents
+    except Exception as e:
+        print(f"⚠️  Warning: Failed to initialize A2A registry: {e}\n")
 
     # Check for version/changelog flags BEFORE requiring API key
     if len(sys.argv) > 1:
@@ -244,6 +316,7 @@ def main():
     # Create the agent system (requires API key)
     try:
         agent_system = create_agent_system()
+            
     except ValueError as e:
         print_error(str(e))
         return 1

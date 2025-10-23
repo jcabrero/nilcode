@@ -1,0 +1,37 @@
+{
+  "name": "hedera-agent-toolkit-examples-langchain",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "echo \"No tests specified for example package\"",
+    "langchain:structured-chat-agent": "tsx src/structured-chat-agent.ts",
+    "langchain:tool-calling-agent": "tsx src/tool-calling-agent.ts",
+    "langchain:return-bytes-tool-calling-agent": "tsx src/return-bytes-tool-calling-agent.ts",
+    "langchain:plugin-tool-calling-agent": "tsx src/plugin-tool-calling-agent.ts",
+    "a2a:server": "tsx src/a2a-server.ts",
+    "start": "tsx src/a2a-server.ts",
+    "docker:build": "docker build -t hedera-a2a-agent .",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  },
+  "dependencies": {
+    "@a2a-js/sdk": "0.3.4",
+    "@hashgraph/sdk": "^2.68.0",
+    "@langchain/core": "^0.3.66",
+    "@langchain/openai": "^0.6.2",
+    "dotenv": "^17.2.0",
+    "express": "^4.18.2",
+    "hedera-agent-kit": "3.3.0",
+    "langchain": "^0.3.30",
+    "prompts": "^2.4.2",
+    "uuid": "^9.0.0"
+  },
+  "author": "",
+  "license": "Apache-2.0",
+  "description": "",
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/prompts": "^2.4.9",
+    "@types/uuid": "^9.0.7",
+    "tsx": "^4.20.4"
+  }
+}

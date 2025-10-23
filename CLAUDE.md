@@ -12,6 +12,7 @@ This is a **production-ready** multi-agent LangChain/LangGraph system that coord
 - ✅ Language-agnostic design supporting any programming language
 - ✅ Enhanced agent coordination through shared documentation
 - ✅ Multi-stage validation with self-correction
+- ✅ **A2A External Agent Integration** - Connect to external AI agents via Agent-to-Agent protocol
 
 ## Commands
 
@@ -49,14 +50,15 @@ uv run python test_planner.py
 
 ### Multi-Agent Workflow
 
-The system uses LangGraph's StateGraph to coordinate 6 specialized agents:
+The system uses LangGraph's StateGraph to coordinate 7 specialized agents:
 
-1. **Planner** (`src/nilcode/agents/planner.py`) - Entry point that analyzes requests, detects languages/frameworks, creates task breakdowns
+1. **Planner** (`src/nilcode/agents/planner.py`) - Entry point that analyzes requests, detects languages/frameworks, creates task breakdowns, discovers external A2A agents
 2. **Software Architect** (`src/nilcode/agents/software_architect.py`) - Establishes repository structure, creates PROJECT_MANIFEST.md and architectural guidelines
 3. **Coder** (`src/nilcode/agents/coder.py`) - Handles ALL implementation including dependencies, frontend, backend, and configuration files
 4. **Tester & Validator** (`src/nilcode/agents/tester.py`) - Validates code syntax/style, writes unit tests, performs code analysis
 5. **Error Recovery** (`src/nilcode/agents/error_recovery.py`) - Fixes syntax errors and handles code recovery
-6. **Orchestrator** (`src/nilcode/agents/orchestrator.py`) - Coordinates workflow, routes tasks, aggregates results, provides final summaries
+6. **A2A Client** (`src/nilcode/agents/a2a_client.py`) - **NEW** - Communicates with external agents via Agent-to-Agent protocol
+7. **Orchestrator** (`src/nilcode/agents/orchestrator.py`) - Coordinates workflow, routes tasks, aggregates results, provides final summaries
 
 ### State Management
 
@@ -127,6 +129,34 @@ def create_agent(api_key: str, base_url: Optional[str] = None):
 
     return agent
 ```
+
+### A2A External Agent Integration
+
+The system supports connecting to external AI agents via the Agent-to-Agent (A2A) protocol:
+
+**Components:**
+- **A2A Agent Registry** (`src/nilcode/a2a/registry.py`) - Discovers and manages external agents
+- **A2A Client Agent** (`src/nilcode/agents/a2a_client.py`) - Communicates with external agents via A2A protocol
+
+**Configuration:**
+```bash
+# Option 1: Environment variable
+export A2A_AGENTS='[{"name":"agent1","base_url":"http://localhost:9999"}]'
+
+# Option 2: Config file
+export A2A_CONFIG_PATH=a2a_agents.json
+```
+
+**Workflow:**
+1. On startup, registry discovers external agents from configured endpoints
+2. Planner queries registry and includes external agents in planning
+3. Tasks can be assigned to external agents by name
+4. A2A Client agent handles communication with external agents
+5. Results are aggregated back into the main workflow
+
+**Documentation:**
+- See `docs/A2A_INTEGRATION.md` for detailed setup and usage
+- Run `examples/a2a_integration_demo.py` for testing
 
 ## Key Implementation Details
 
