@@ -647,7 +647,7 @@ wheels = [
 
 [[package]]
 name = "nilcode"
-version = "2.0.15"
+version = "3.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "a2a-sdk", extra = ["all"] },
