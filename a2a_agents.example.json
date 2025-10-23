@@ -1,0 +1,14 @@
+{
+  "external_agents": [
+    {
+      "name": "currency_converter",
+      "base_url": "http://localhost:9999",
+      "auth_token": "your-auth-token-here-if-needed"
+    },
+    {
+      "name": "data_analyzer",
+      "base_url": "http://localhost:8888",
+      "auth_token": null
+    }
+  ]
+}

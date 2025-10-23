@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  hedera-a2a-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hedera-a2a-agent
+    ports:
+      - "9000:9000"
+    environment:
+      # A2A Configuration
+      - PORT=9000
+      - AGENT_URL=http://localhost:9000/
+
+      # Hedera Configuration
+      - ACCOUNT_ID=${ACCOUNT_ID}
+      - PRIVATE_KEY=${PRIVATE_KEY}
+
+      # OpenAI/LLM Configuration
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-oss-20b:free}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
+
+      # Node environment
+      - NODE_ENV=${NODE_ENV:-production}
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9000/.well-known/agent-card.json"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - hedera-network
+
+networks:
+  hedera-network:
+    driver: bridge
