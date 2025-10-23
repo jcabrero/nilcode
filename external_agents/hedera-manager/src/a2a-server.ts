@@ -66,14 +66,26 @@ class HederaAgentExecutor implements AgentExecutor {
       timeout: 30000,
     });
 
-    // Hedera client setup (Testnet by default)
+    // Hedera client setup (network configurable, Testnet by default)
     // Strip 0x prefix from private key if present
     const privateKeyStr = process.env.PRIVATE_KEY!.startsWith('0x')
       ? process.env.PRIVATE_KEY!.slice(2)
       : process.env.PRIVATE_KEY!;
 
     console.log('Setting up Hedera client...');
-    const client = Client.forTestnet().setOperator(
+    const network = (process.env.HEDERA_NETWORK || 'testnet').toLowerCase();
+    let client: Client;
+    switch (network) {
+      case 'mainnet':
+        client = Client.forMainnet();
+        break;
+      case 'previewnet':
+        client = Client.forPreviewnet();
+        break;
+      default:
+        client = Client.forTestnet();
+    }
+    client = client.setOperator(
       process.env.ACCOUNT_ID!,
       PrivateKey.fromStringECDSA(privateKeyStr),
     );
@@ -83,9 +95,16 @@ class HederaAgentExecutor implements AgentExecutor {
     const hederaAgentToolkit = new HederaLangchainToolkit({
       client,
       configuration: {
-        tools: [], // empty array loads all tools
+        // Limit tools to safe read-only query operations to reduce schema errors
+        tools: [
+          'get_hbar_balance_query_tool',
+          'get_account_query_tool',
+          'get_account_token_balances_query_tool',
+        ],
         context: {
           mode: AgentMode.AUTONOMOUS,
+          // Default account for queries when user doesn't specify one
+          accountId: process.env.ACCOUNT_ID,
         },
         plugins: [],
       },
@@ -94,7 +113,17 @@ class HederaAgentExecutor implements AgentExecutor {
     // Load the chat prompt template
     console.log('Setting up agent prompt and tools...');
     const prompt = ChatPromptTemplate.fromMessages([
-      ['system', 'You are a helpful Hedera blockchain assistant. You can help users interact with the Hedera network, manage accounts, tokens, and smart contracts. Always provide clear explanations of what you are doing.'],
+      [
+        'system',
+        [
+          'You are a helpful Hedera blockchain assistant. ',
+          'Only use read-only QUERY tools for balance and account lookups. ',
+          'When querying HBAR balance, call the tool "get_hbar_balance_query_tool" ',
+          'with parameter "accountId" as a string like "0.0.x", or omit it to use the default operator account. ',
+          'Strictly follow each tool\'s JSON schema (no extra fields, correct types). ',
+          'Explain results concisely.'
+        ].join('')
+      ],
       ['placeholder', '{chat_history}'],
       ['human', '{input}'],
       ['placeholder', '{agent_scratchpad}'],
