@@ -392,7 +392,7 @@ def create_coder_agent(api_key: str, base_url: str = None) -> CoderAgent:
         Configured CoderAgent
     """
     model_kwargs = {
-        "model": "openai/gpt-oss-120b",  # More reliable than free models
+        "model": "qwen/qwen3-coder-30b-a3b-instruct",  # More reliable than free models
         "api_key": api_key,
     }
 

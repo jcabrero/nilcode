@@ -38,17 +38,18 @@ def determine_next_agent(
     ):
         return prefer_agent
 
-    # First, check for internal agents in execution order
-    for agent in AGENT_EXECUTION_ORDER:
-        if any(task.get("assignedTo") == agent for task in pending_tasks):
-            return agent
-
-    # Check for external A2A agents (any agent not in standard order)
+    # Check for external A2A agents FIRST (higher priority than internal agents)
+    # This ensures external agents are called before moving to internal validation/testing
     for task in pending_tasks:
         assigned_to = task.get("assignedTo", "")
         if assigned_to and assigned_to not in AGENT_EXECUTION_ORDER:
             # This is an external agent - route to a2a_client
             return "a2a_client"
+
+    # Then check for internal agents in execution order
+    for agent in AGENT_EXECUTION_ORDER:
+        if any(task.get("assignedTo") == agent for task in pending_tasks):
+            return agent
 
     # Fall back to tester so the validation stage still runs, even when all
     # implementation tasks are marked completed.

@@ -626,7 +626,7 @@ def create_planner_agent(api_key: str, base_url: str = None) -> PlannerAgent:
         Configured PlannerAgent
     """
     model_kwargs = {
-        "model": "openai/gpt-oss-20b:free",
+        "model": "openai/gpt-oss-120b",
         "api_key": api_key,
     }
 
