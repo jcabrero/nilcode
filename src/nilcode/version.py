@@ -6,12 +6,28 @@ from typing import Dict, Any
 from datetime import datetime
 
 # Version information
-__version__ = "2.0.23"
-__version_name__ = "Validator"
+__version__ = "2.1.0"
+__version_name__ = "Claude"
 __release_date__ = "2025-01-21"
 
 # Version history
 VERSION_HISTORY = {
+    "2.1.0": {
+        "name": "Claude",
+        "date": "2025-01-21",
+        "description": "Redesigned CLI with Claude Code-inspired aesthetic",
+        "features": [
+            "Clean, minimal banner design with purple/blue theme",
+            "Refined color palette inspired by Claude Code",
+            "Improved status indicators with subtle symbols (→, ✓, ✗, ·)",
+            "Enhanced task list visualization with minimal styling",
+            "Better use of whitespace and typography",
+            "Dimmed secondary text for better hierarchy",
+            "More professional, less emoji-heavy interface",
+            "Updated version info and changelog displays",
+        ],
+        "breaking_changes": [],
+    },
     "2.0.2": {
         "name": "Validator",
         "date": "2025-01-21",
@@ -88,51 +104,66 @@ def get_version_info() -> Dict[str, Any]:
 def get_banner() -> str:
     """
     Get the NilCode banner with version information.
+    Claude Code-inspired design with clean, minimal aesthetic.
 
     Returns:
-        Formatted banner string
+        Formatted banner string with colors
     """
+    # Colors for banner
+    PURPLE = '\033[38;5;141m'
+    BLUE = '\033[38;5;111m'
+    GRAY = '\033[38;5;245m'
+    BOLD = '\033[1m'
+    DIM = '\033[2m'
+    ENDC = '\033[0m'
+    
     banner = f"""
-╔══════════════════════════════════════════════════════════════════╗
-║                                                                  ║
-║   ███╗   ██╗██╗██╗      ██████╗ ██████╗ ██████╗ ███████╗       ║
-║   ████╗  ██║██║██║     ██╔════╝██╔═══██╗██╔══██╗██╔════╝       ║
-║   ██╔██╗ ██║██║██║     ██║     ██║   ██║██║  ██║█████╗         ║
-║   ██║╚██╗██║██║██║     ██║     ██║   ██║██║  ██║██╔══╝         ║
-║   ██║ ╚████║██║███████╗╚██████╗╚██████╔╝██████╔╝███████╗       ║
-║   ╚═╝  ╚═══╝╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝       ║
-║                                                                  ║
-║              Multi-Agent AI Development System                   ║
-║                                                                  ║
-║  Version: {__version__} "{__version_name__}"                               ║
-║  Released: {__release_date__}                                      ║
-║                                                                  ║
-║  Features:                                                       ║
-║  ✓ Syntax Validation & Error Correction                         ║
-║  ✓ Language-Agnostic Code Generation                            ║
-║  ✓ Architectural Consistency Enforcement                        ║
-║  ✓ Multi-Stage Quality Assurance                                ║
-║                                                                  ║
-║  Supported Languages: Python, JavaScript, TypeScript, HTML      ║
-║  Frameworks: React, Vue, FastAPI, Flask, Django, Express        ║
-║                                                                  ║
-╚══════════════════════════════════════════════════════════════════╝
+{PURPLE}{BOLD}
+  ███╗   ██╗ ██╗ ██╗       ██████╗  ██████╗  ██████╗  ███████╗
+  ████╗  ██║ ██║ ██║      ██╔════╝ ██╔═══██╗ ██╔══██╗ ██╔════╝
+  ██╔██╗ ██║ ██║ ██║      ██║      ██║   ██║ ██║  ██║ █████╗  
+  ██║╚██╗██║ ██║ ██║      ██║      ██║   ██║ ██║  ██║ ██╔══╝  
+  ██║ ╚████║ ██║ ███████╗ ╚██████╗ ╚██████╔╝ ██████╔╝ ███████╗
+  ╚═╝  ╚═══╝ ╚═╝ ╚══════╝  ╚═════╝  ╚═════╝  ╚═════╝  ╚══════╝
+{ENDC}
+{GRAY}  Multi-Agent AI Development System{ENDC}
+
+{DIM}  Version {__version__} "{__version_name__}" · Released {__release_date__}{ENDC}
+
+{GRAY}  ─────────────────────────────────────────────────────────────────{ENDC}
+
+{BLUE}  Capabilities{ENDC}
+{GRAY}  • Syntax validation & error correction
+  • Language-agnostic code generation
+  • Architectural consistency enforcement
+  • Multi-stage quality assurance{ENDC}
+
+{BLUE}  Languages{ENDC}
+{GRAY}  Python · JavaScript · TypeScript · HTML · CSS{ENDC}
+
+{BLUE}  Frameworks{ENDC}
+{GRAY}  React · Vue · FastAPI · Flask · Django · Express{ENDC}
+
+{GRAY}  ─────────────────────────────────────────────────────────────────{ENDC}
 """
     return banner
 
 
 def get_short_banner() -> str:
     """
-    Get a compact version banner.
+    Get a compact version banner with Claude Code styling.
 
     Returns:
-        Compact banner string
+        Compact banner string with colors
     """
+    PURPLE = '\033[38;5;141m'
+    GRAY = '\033[38;5;245m'
+    BOLD = '\033[1m'
+    ENDC = '\033[0m'
+    
     return f"""
-┌──────────────────────────────────────────────────────────────┐
-│ NilCode v{__version__} "{__version_name__}" - Multi-Agent Development System │
-│ Released: {__release_date__}                                        │
-└──────────────────────────────────────────────────────────────┘
+{PURPLE}{BOLD}NilCode{ENDC} {GRAY}v{__version__} "{__version_name__}"{ENDC}
+{GRAY}Multi-Agent Development System · Released {__release_date__}{ENDC}
 """
 
 
@@ -150,41 +181,60 @@ def print_banner(short: bool = False) -> None:
 
 
 def print_version_info() -> None:
-    """Print detailed version information."""
+    """Print detailed version information with Claude Code styling."""
     info = get_version_info()
+    
+    # Colors
+    PURPLE = '\033[38;5;141m'
+    GRAY = '\033[38;5;245m'
+    BLUE = '\033[38;5;111m'
+    SUCCESS = '\033[38;5;114m'
+    WARNING = '\033[38;5;222m'
+    BOLD = '\033[1m'
+    DIM = '\033[2m'
+    ENDC = '\033[0m'
 
-    print(f"\n{'='*70}")
-    print(f"NilCode Version {info['version']} \"{info['name']}\"")
-    print(f"Released: {info['release_date']}")
-    print(f"{'='*70}\n")
+    print(f"\n{PURPLE}{BOLD}NilCode{ENDC} {GRAY}v{info['version']} \"{info['name']}\"{ENDC}")
+    print(f"{DIM}Released: {info['release_date']}{ENDC}")
+    print(f"{GRAY}{'─'*70}{ENDC}\n")
 
-    if info["history"]:
-        print(f"Description:")
-        print(f"  {info['history'].get('description', 'N/A')}\n")
+    if info['history']:
+        print(f"{info['history'].get('description', 'N/A')}\n")
 
-        if info["history"].get("features"):
-            print("Features:")
-            for feature in info["history"]["features"]:
-                print(f"  ✓ {feature}")
+        if info['history'].get('features'):
+            print(f"{BLUE}{BOLD}Features{ENDC}")
+            print(f"{GRAY}{'─'*70}{ENDC}")
+            for feature in info['history']['features']:
+                print(f"{SUCCESS}•{ENDC} {GRAY}{feature}{ENDC}")
             print()
 
-        if info["history"].get("breaking_changes"):
-            print("Breaking Changes:")
-            for change in info["history"]["breaking_changes"]:
-                print(f"  ⚠ {change}")
+        if info['history'].get('breaking_changes'):
+            print(f"{WARNING}{BOLD}Breaking Changes{ENDC}")
+            print(f"{GRAY}{'─'*70}{ENDC}")
+            for change in info['history']['breaking_changes']:
+                print(f"{WARNING}⚠{ENDC} {GRAY}{change}{ENDC}")
             print()
 
 
 def print_changelog(limit: int = None) -> None:
     """
-    Print the version changelog.
+    Print the version changelog with Claude Code styling.
 
     Args:
         limit: Maximum number of versions to show. None shows all.
     """
-    print("\n" + "=" * 70)
-    print("VERSION CHANGELOG")
-    print("=" * 70 + "\n")
+    # Colors
+    PURPLE = '\033[38;5;141m'
+    GRAY = '\033[38;5;245m'
+    BLUE = '\033[38;5;111m'
+    SUCCESS = '\033[38;5;114m'
+    WARNING = '\033[38;5;222m'
+    BOLD = '\033[1m'
+    DIM = '\033[2m'
+    ENDC = '\033[0m'
+    
+    print(f"\n{PURPLE}{BOLD}Version Changelog{ENDC}")
+    print(f"{GRAY}{'─'*70}{ENDC}\n")
 
     versions = sorted(VERSION_HISTORY.keys(), reverse=True)
     if limit:
@@ -192,23 +242,21 @@ def print_changelog(limit: int = None) -> None:
 
     for version in versions:
         info = VERSION_HISTORY[version]
-        print(f"Version {version} \"{info['name']}\" ({info['date']})")
-        print(f"{'-'*70}")
-        print(f"{info['description']}\n")
+        print(f"{BLUE}{BOLD}v{version}{ENDC} {GRAY}\"{info['name']}\" · {info['date']}{ENDC}")
+        print(f"{DIM}{info['description']}{ENDC}\n")
 
-        if info.get("features"):
-            print("Features:")
-            for feature in info["features"]:
-                print(f"  ✓ {feature}")
+        if info.get('features'):
+            for feature in info['features']:
+                print(f"  {SUCCESS}•{ENDC} {GRAY}{feature}{ENDC}")
             print()
 
-        if info.get("breaking_changes"):
-            print("Breaking Changes:")
-            for change in info["breaking_changes"]:
-                print(f"  ⚠ {change}")
+        if info.get('breaking_changes'):
+            print(f"  {WARNING}{BOLD}Breaking Changes{ENDC}")
+            for change in info['breaking_changes']:
+                print(f"  {WARNING}⚠{ENDC} {GRAY}{change}{ENDC}")
             print()
 
-        print()
+        print(f"{GRAY}{'─'*70}{ENDC}\n")
 
 
 # Quick version check function
