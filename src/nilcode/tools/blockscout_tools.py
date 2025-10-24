@@ -1,5 +1,5 @@
 """
-Blockscout/Etherscan-compatible tools for on-chain analysis.
+Blockscout-compatible tools for on-chain analysis.
 
 These tools attempt real network calls to fetch balances; if unavailable,
 they return a clear offline/failed message. Supports ENS resolution.
@@ -35,24 +35,9 @@ def _resolve_ens(name: str) -> Optional[str]:
 
 
 def _fetch_balance_eth(address: str) -> Optional[float]:
-    """
-    Fetch balance in ETH (float) for an address via Etherscan or Blockscout.
-    """
-    # Prefer Etherscan if key present
-    api_key = os.getenv("ETHERSCAN_API_KEY")
+
     try:
-        if api_key:
-            url = (
-                "https://api.etherscan.io/api?module=account&action=balance"
-                f"&address={address}&tag=latest&apikey={api_key}"
-            )
-            r = requests.get(url, timeout=8)
-            if r.status_code == 200:
-                j = r.json()
-                wei = j.get("result")
-                if isinstance(wei, str) and wei.isdigit():
-                    return int(wei) / 1e18
-        # Fallback: Blockscout public mainnet endpoint
+        # Blockscout public mainnet endpoint
         url = (
             "https://blockscout.com/eth/mainnet/api?module=account&action=balance"
             f"&address={address}"
