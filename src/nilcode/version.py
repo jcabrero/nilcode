@@ -270,8 +270,9 @@ def check_version_compatibility(required_version: str) -> bool:
     Returns:
         True if current version >= required version
     """
+
     def parse_version(v: str) -> tuple:
-        return tuple(map(int, v.split('.')))
+        return tuple(map(int, v.split(".")))
 
     current = parse_version(__version__)
     required = parse_version(required_version)

@@ -68,12 +68,14 @@ def print_agent_status(agent_name: str, status: str = "running"):
     timestamp = datetime.now().strftime("%H:%M:%S")
     
     agent_display = {
+        "preplanner": "PrePlanner",
         "planner": "Planner",
         "software_architect": "Software Architect",
         "coder": "Coder",
         "tester": "Tester & Validator",
         "error_recovery": "Error Recovery",
         "orchestrator": "Orchestrator",
+        "onchain_detective": "Onchain Detective",
         "a2a_client": "External Agent"
     }
     
@@ -361,4 +363,3 @@ def run_single_command(agent_system, command: str, verbose: bool = True):
             import traceback
             traceback.print_exc()
         return 1
-

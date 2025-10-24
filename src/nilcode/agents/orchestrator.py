@@ -103,6 +103,7 @@ class OrchestratorAgent:
         arch_impl = impl_results.get("architecture", "")
         frontend_impl = impl_results.get("frontend", "")
         backend_impl = impl_results.get("backend", "")
+        onchain_impl = impl_results.get("onchain", "") or impl_results.get("onchain_detective", "")
         
         # Extract external agent results (A2A agents)
         external_results = {}
@@ -119,6 +120,8 @@ class OrchestratorAgent:
         for agent_name, result in external_results.items():
             print(f"       - {agent_name}: {len(result)} chars")
         print(f"     - Project files: {len(state.get('project_files', {}))} files")
+        if onchain_impl:
+            print(f"     - Onchain result: {len(onchain_impl)} chars")
         print(f"     - Tasks: {len(state.get('tasks', []))} tasks")
         
         # Fallback: If implementation_results are empty, build summary from tasks
@@ -175,6 +178,8 @@ Frontend implementation: {frontend_impl}
 
 Backend implementation: {backend_impl}
 
+Onchain results: {onchain_impl}
+
 Test results: {test_results}
 
 {external_agent_results}
@@ -196,6 +201,7 @@ Please provide a comprehensive summary of what was accomplished, including:
             architecture_impl=arch_impl if arch_impl else "No architecture work details available",
             frontend_impl=frontend_impl if frontend_impl else "No frontend work details available",
             backend_impl=backend_impl if backend_impl else "No backend work details available",
+            onchain_impl=onchain_impl if onchain_impl else "No onchain work performed",
             test_results=state.get("test_results", {}).get("summary", "No test results"),
             external_agent_results=external_summary if external_summary else "No external agent results"
         )
