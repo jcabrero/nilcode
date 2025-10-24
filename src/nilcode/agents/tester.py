@@ -18,6 +18,7 @@ from ..tools.file_operations import file_tools
 from ..tools.task_management import task_tools, set_task_storage
 from ..tools.code_analysis import code_analysis_tools
 from ..tools.validation_tools import validation_tools
+from .utils import determine_next_agent
 
 from ..prompts.claude import PROMPT
 
@@ -407,14 +408,30 @@ Start by validating imports first!""")
             print(f"\n⚠️ Warning: Error generating summary: {e}")
             summary = "Testing completed (summary generation failed)"
 
+        # Update current task if it exists
+        if tester_tasks:
+            current_task = tester_tasks[0]
+            current_task["status"] = "completed"
+            current_task["result"] = summary
+            # Update in the tasks list
+            for i, task in enumerate(tasks):
+                if task["id"] == current_task["id"]:
+                    tasks[i] = current_task
+                    break
+
+        # Determine next agent based on remaining tasks
+        next_agent = determine_next_agent(tasks)
+        print(f"  🎯 Routing to next agent: {next_agent}")
+
         return {
             "messages": messages_history,
-            "next_agent": "orchestrator",  # Return to orchestrator
+            "tasks": tasks,
+            "next_agent": next_agent,
             "test_results": {
                 "summary": summary,
                 "tool_outputs": test_outputs
             },
-            "overall_status": "completed"
+            "overall_status": "completed" if next_agent == "orchestrator" else "testing"
         }
 
 

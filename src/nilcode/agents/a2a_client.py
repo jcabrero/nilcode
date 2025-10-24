@@ -15,6 +15,7 @@ from a2a.types import MessageSendParams, SendMessageRequest, SendStreamingMessag
 
 from ..state.agent_state import AgentState
 from ..a2a.registry import get_global_registry
+from .utils import INTERNAL_AGENTS, determine_next_agent
 
 
 logger = logging.getLogger(__name__)
@@ -105,14 +106,16 @@ class A2AClientAgent:
         external_tasks = []
         for task in tasks:
             assigned_to = task.get("assignedTo", "")
-            if assigned_to and assigned_to not in ["planner", "software_architect", "frontend_developer", "backend_developer", "tester", "orchestrator"]:
+            # Only include tasks assigned to agents that are NOT in our internal agents list
+            if assigned_to and assigned_to not in INTERNAL_AGENTS:
                 external_tasks.append(task)
 
         if not external_tasks:
-            logger.error("No tasks assigned to external agents found")
+            logger.warning("No tasks assigned to external agents found")
+            # No external tasks, route to next internal agent
+            next_agent = determine_next_agent(tasks)
             return {
-                "next_agent": "orchestrator",
-                "error": "No external agent tasks found"
+                "next_agent": next_agent,
             }
 
         # Use the first external task (in a real system, you might want to prioritize)
@@ -297,9 +300,13 @@ class A2AClientAgent:
             print(f"     - Result length: {len(result_text)} chars")
             print(f"     - Total implementation results: {len(updated_impl_results)}")
 
+            # Determine next agent based on remaining tasks
+            next_agent = determine_next_agent(tasks)
+            print(f"  🎯 Routing to next agent: {next_agent}")
+
             return {
                 "tasks": tasks,
-                "next_agent": "orchestrator",
+                "next_agent": next_agent,
                 "implementation_results": updated_impl_results
             }
 
@@ -317,9 +324,12 @@ class A2AClientAgent:
                     tasks[i] = current_task
                     break
 
+            # Determine next agent based on remaining tasks
+            next_agent = determine_next_agent(tasks)
+
             return {
                 "tasks": tasks,
-                "next_agent": "orchestrator",
+                "next_agent": next_agent,
                 "error": f"Failed to communicate with external agent: {str(e)}"
             }
 

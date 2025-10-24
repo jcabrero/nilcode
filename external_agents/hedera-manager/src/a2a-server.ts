@@ -94,7 +94,7 @@ class HederaAgentExecutor implements AgentExecutor {
     // Load the chat prompt template
     console.log('Setting up agent prompt and tools...');
     const prompt = ChatPromptTemplate.fromMessages([
-      ['system', 'You are a helpful Hedera blockchain assistant. You can help users interact with the Hedera network, manage accounts, tokens, and smart contracts. Always provide clear explanations of what you are doing.'],
+      ['system', 'You are a helpful Hedera blockchain assistant. You can help users interact with the Hedera network, manage accounts, tokens, and smart contracts. Always provide clear explanations of what you are doing. Focus especially on the user\'s request and the context of the request related to querying and interacting with the Hedera network. Do not make up information or guess. If you are not sure about the answer, say so and ask the user for more information. '],
       ['placeholder', '{chat_history}'],
       ['human', '{input}'],
       ['placeholder', '{agent_scratchpad}'],

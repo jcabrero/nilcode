@@ -12,6 +12,9 @@ AGENT_EXECUTION_ORDER: List[str] = [
     "tester",
 ]
 
+# All internal agents (special agents + execution order agents)
+INTERNAL_AGENTS = ["planner", "orchestrator", "error_recovery", "a2a_client"] + AGENT_EXECUTION_ORDER
+
 
 def determine_next_agent(
     tasks: List[Dict[str, str]],
@@ -38,18 +41,20 @@ def determine_next_agent(
     ):
         return prefer_agent
 
-    # Check for external A2A agents FIRST (higher priority than internal agents)
-    # This ensures external agents are called before moving to internal validation/testing
-    for task in pending_tasks:
-        assigned_to = task.get("assignedTo", "")
-        if assigned_to and assigned_to not in AGENT_EXECUTION_ORDER:
-            # This is an external agent - route to a2a_client
-            return "a2a_client"
-
-    # Then check for internal agents in execution order
+    # Check for internal agents in execution order FIRST
+    # This ensures proper sequential execution (architect -> coder -> tester)
     for agent in AGENT_EXECUTION_ORDER:
         if any(task.get("assignedTo") == agent for task in pending_tasks):
             return agent
+
+    # Then check for external A2A agents
+    # External agents are checked after internal agents to maintain workflow order
+    for task in pending_tasks:
+        assigned_to = task.get("assignedTo", "")
+        # If assigned to an agent that's not in our internal agents list, route to a2a_client
+        if assigned_to and assigned_to not in INTERNAL_AGENTS:
+            # This is an external agent - route to a2a_client
+            return "a2a_client"
 
     # Fall back to tester so the validation stage still runs, even when all
     # implementation tasks are marked completed.
