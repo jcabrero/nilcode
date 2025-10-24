@@ -163,8 +163,8 @@ class A2AClientAgent:
 
         # Include context from the state
         context_parts = []
-        if user_request:
-            context_parts.append(f"Original request: {user_request}")
+        # if user_request:
+        #     context_parts.append(f"Original request: {user_request}")
         if task_content:
             context_parts.append(f"Specific task: {task_content}")
 

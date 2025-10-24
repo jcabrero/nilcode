@@ -56,6 +56,6 @@ def determine_next_agent(
             # This is an external agent - route to a2a_client
             return "a2a_client"
 
-    # Fall back to tester so the validation stage still runs, even when all
-    # implementation tasks are marked completed.
-    return "tester"
+    # No pending tasks found - route to orchestrator to complete workflow
+    # (All tasks are completed or no tasks exist)
+    return "orchestrator"

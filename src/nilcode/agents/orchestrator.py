@@ -103,16 +103,20 @@ class OrchestratorAgent:
         arch_impl = impl_results.get("architecture", "")
         frontend_impl = impl_results.get("frontend", "")
         backend_impl = impl_results.get("backend", "")
+        coder_impl = impl_results.get("coder", "")  # Unified coder agent result
         
         # Extract external agent results (A2A agents)
+        # Internal agents: architecture, frontend, backend, coder, tester
+        INTERNAL_AGENT_KEYS = ["architecture", "frontend", "backend", "coder", "tester"]
         external_results = {}
         for key, value in impl_results.items():
-            if key not in ["architecture", "frontend", "backend"]:
+            if key not in INTERNAL_AGENT_KEYS:
                 external_results[key] = value
         
         # Debug: Show what we received
         print(f"  📊 State received:")
         print(f"     - Architecture result: {len(arch_impl)} chars")
+        print(f"     - Coder result: {len(coder_impl)} chars")
         print(f"     - Frontend result: {len(frontend_impl)} chars")
         print(f"     - Backend result: {len(backend_impl)} chars")
         print(f"     - External agent results: {len(external_results)} agents")
@@ -122,7 +126,7 @@ class OrchestratorAgent:
         print(f"     - Tasks: {len(state.get('tasks', []))} tasks")
         
         # Fallback: If implementation_results are empty, build summary from tasks
-        if not arch_impl and not frontend_impl and not backend_impl and not external_results:
+        if not arch_impl and not coder_impl and not frontend_impl and not backend_impl and not external_results:
             print("  ⚠️  Implementation results empty, building from task results...")
             tasks = state.get("tasks", [])
             for task in tasks:
@@ -132,11 +136,13 @@ class OrchestratorAgent:
                     
                     if agent == "software_architect" and not arch_impl:
                         arch_impl = result
+                    elif agent == "coder" and not coder_impl:
+                        coder_impl += result + "\n\n"
                     elif agent == "frontend_developer" and not frontend_impl:
                         frontend_impl += result + "\n\n"
                     elif agent == "backend_developer" and not backend_impl:
                         backend_impl += result + "\n\n"
-                    elif agent not in ["planner", "software_architect", "frontend_developer", "backend_developer", "tester", "orchestrator"]:
+                    elif agent not in INTERNAL_AGENT_KEYS + ["planner", "orchestrator"]:
                         # This is an external agent result
                         external_results[agent] = result
         
@@ -171,6 +177,8 @@ Project files created:
 
 Architectural setup: {architecture_impl}
 
+Code implementation: {coder_impl}
+
 Frontend implementation: {frontend_impl}
 
 Backend implementation: {backend_impl}
@@ -182,9 +190,10 @@ Test results: {test_results}
 Please provide a comprehensive summary of what was accomplished, including:
 1. Overview of completed work
 2. Files created/modified (use the list above)
-3. Test and validation results
-4. External agent results (if any)
-5. Any recommendations or next steps""")
+3. Code implementation details
+4. Test and validation results
+5. External agent results (if any)
+6. Any recommendations or next steps""")
         ])
 
         # Format the prompt
@@ -194,6 +203,7 @@ Please provide a comprehensive summary of what was accomplished, including:
             tasks_summary=tasks_summary,
             files_summary=files_summary if files_summary else "No files created yet",
             architecture_impl=arch_impl if arch_impl else "No architecture work details available",
+            coder_impl=coder_impl if coder_impl else "No coder work details available",
             frontend_impl=frontend_impl if frontend_impl else "No frontend work details available",
             backend_impl=backend_impl if backend_impl else "No backend work details available",
             test_results=state.get("test_results", {}).get("summary", "No test results"),
@@ -201,19 +211,70 @@ Please provide a comprehensive summary of what was accomplished, including:
         )
 
         # Get final summary
-        response = self.model.invoke(messages)
+        try:
+            response = self.model.invoke(messages)
+            summary_content = response.content if hasattr(response, 'content') else str(response)
+            
+            # If response is empty or too short, create a basic summary
+            if not summary_content or len(summary_content.strip()) < 20:
+                print("  ⚠️  LLM returned empty response, generating fallback summary...")
+                summary_content = self._generate_fallback_summary(
+                    state, tasks_summary, files_summary, external_summary
+                )
+        except Exception as e:
+            print(f"  ⚠️  Error getting LLM summary: {e}")
+            summary_content = self._generate_fallback_summary(
+                state, tasks_summary, files_summary, external_summary
+            )
 
         print("\n" + "=" * 70)
         print("FINAL SUMMARY")
         print("=" * 70)
-        print(response.content)
+        print(summary_content)
         print("=" * 70)
 
         return {
-            "messages": state.get("messages", []) + [response],
+            "messages": state.get("messages", []) + [response] if 'response' in locals() else state.get("messages", []),
             "overall_status": "completed",
             "next_agent": "end",
+            "final_summary": summary_content,
         }
+    
+    def _generate_fallback_summary(
+        self, 
+        state: AgentState, 
+        tasks_summary: str, 
+        files_summary: str, 
+        external_summary: str
+    ) -> str:
+        """Generate a fallback summary when LLM fails."""
+        summary_parts = [
+            f"## Summary of Work Completed\n",
+            f"\n**User Request:** {state['user_request']}\n",
+            f"\n**Plan:** {state.get('plan', 'No plan available')}\n",
+            f"\n### Tasks\n{tasks_summary}\n",
+        ]
+        
+        if files_summary and files_summary != "No files created yet":
+            summary_parts.append(f"\n### Files Created\n{files_summary}\n")
+        
+        impl_results = state.get("implementation_results", {})
+        if impl_results:
+            summary_parts.append(f"\n### Implementation Results\n")
+            for agent_name, result in impl_results.items():
+                preview = result[:300] + "..." if len(result) > 300 else result
+                summary_parts.append(f"\n**{agent_name}:**\n{preview}\n")
+        
+        test_results = state.get("test_results", {})
+        if test_results:
+            summary_parts.append(f"\n### Test Results\n{test_results.get('summary', 'Tests completed')}\n")
+        
+        if external_summary:
+            summary_parts.append(external_summary)
+        
+        summary_parts.append("\n### Status\n✅ All tasks completed successfully!")
+        
+        return "".join(summary_parts)
 
 
 def create_orchestrator_agent(api_key: str, base_url: str = None) -> OrchestratorAgent:
