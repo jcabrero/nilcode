@@ -245,7 +245,7 @@ def main():
     """Command-line interface for the multi-agent system."""
     import asyncio
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv('/Users/jcabrero/Repos/hackathon/ethonline/nilcode/.env.global')
 
     # Import the enhanced CLI
     try:
