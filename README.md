@@ -1,93 +1,106 @@
-# NilCode v2.0 - AI Development Assistant
+# NilCode v3.0 - AI Development Assistant
 
-A sophisticated multi-agent AI system that rivals Claude Code, built with LangChain and LangGraph. NilCode uses specialized AI agents working together to understand codebases, implement features, fix errors, and validate results - all autonomously.
+[![Python 3.14+](https://img.shields.io/badge/python-3.14+-blue.svg)](https://www.python.org/downloads/)
+[![LangChain](https://img.shields.io/badge/LangChain-1.0+-green.svg)](https://github.com/langchain-ai/langchain)
+[![LangGraph](https://img.shields.io/badge/LangGraph-1.0+-orange.svg)](https://github.com/langchain-ai/langgraph)
+[![A2A Protocol](https://img.shields.io/badge/A2A-Protocol-purple.svg)](https://github.com/a2aproject/A2A)
 
-## 🚀 What's New in v2.0
+A sophisticated multi-agent AI system that rivals Claude Code, built with LangChain and LangGraph. NilCode uses **9 specialized AI agents** working together to understand codebases, implement features, fix errors, validate results, and integrate with external agents - all autonomously.
+
+## 🚀 What's New in v3.0
 
 **Major Enhancements:**
-- ✅ **Semantic Code Understanding** - Find definitions, usages, and analyze project structure
-- ✅ **Intelligent Context Gathering** - Understands existing codebases before making changes
-- ✅ **Terminal Execution** - Run tests, install packages, execute commands
-- ✅ **Git Integration** - Check status, diffs, and history
-- ✅ **Error Recovery** - Automatically detects and fixes errors with self-correction
-- ✅ **Enhanced CLI** - Beautiful interface with streaming updates and progress
-- ✅ **Project Configuration** - Customize behavior via `.nilcoderc`
-- ✅ **8 Specialized Agents** - Context Gatherer and Error Recovery agents added
+- ✅ **9 Specialized Agents** - Preplanner, Coder, Error Recovery, A2A Client, Onchain Detective
+- ✅ **A2A External Agent Integration** - Connect to external AI agents via Agent-to-Agent protocol
+- ✅ **Project Manifest System** - Structured documentation and guidelines for all agents
+- ✅ **Syntax Validation** - Mandatory validation before task completion
+- ✅ **Enhanced Error Recovery** - Self-correcting with up to 2 retries
+- ✅ **Onchain Detective** - Blockchain-specific agent for Ethereum, Hedera, etc.
+- ✅ **Production-Ready** - Comprehensive validation, error handling, and logging
 
-See [IMPROVEMENTS.md](IMPROVEMENTS.md) for detailed documentation of all enhancements.
+## ✨ Key Features
 
-## Features
+- **🤖 Multi-Agent Architecture**: 9 specialized agents for different development tasks
+- **🔗 A2A External Agent Integration**: Connect to external AI agents via Agent-to-Agent protocol
+- **📋 Project Manifest System**: Structured documentation and coding standards
+- **🔍 Codebase Intelligence**: Semantic search, definition finding, and project analysis
+- **🛠️ Autonomous Development**: From planning to implementation to testing to error fixing
+- **🌐 Full-Stack Support**: Frontend (React, Vue) and backend (Python, Node.js) code generation
+- **🔧 Self-Correction**: Automatic error detection and fixing with retry logic
+- **✅ Syntax Validation**: Mandatory validation before marking tasks complete
+- **🧪 Test Execution**: Run tests and validate code automatically
+- **📊 Git Awareness**: Understands version control state
+- **⚡ LangGraph Orchestration**: Sophisticated state management and agent coordination
+- **🔗 Blockchain Integration**: Onchain Detective for Ethereum, Hedera, and other chains
 
-- **Multi-Agent Architecture**: 8 specialized agents for different development tasks
-- **A2A External Agent Integration**: Connect to external AI agents via Agent-to-Agent protocol 🆕
-- **Codebase Intelligence**: Semantic search, definition finding, and project analysis
-- **Autonomous Development**: From planning to implementation to testing to error fixing
-- **Full-Stack Support**: Frontend (React, Vue) and backend (Python, Node.js) code generation
-- **Self-Correction**: Automatic error detection and fixing
-- **Test Execution**: Run tests and validate code automatically
-- **Git Awareness**: Understands version control state
-- **LangGraph Orchestration**: Sophisticated state management and agent coordination
+## 🏗️ Architecture
 
-## Architecture
+The system consists of **9 specialized agents** working together in a sophisticated workflow:
 
-The system consists of **8 specialized agents** working together:
+### Core Agents
 
-### 1. Planner Agent
-- Analyzes user requests
+#### 1. **Orchestrator Agent** 🎯
+- Coordinates workflow between all agents
+- Routes tasks appropriately based on capabilities
+- Aggregates results from all agents
+- Provides final summaries and status updates
+
+#### 2. **Preplanner Agent** 📋
+- Initial analysis of user requests
+- Determines scope and approach
+- Identifies required technologies and frameworks
+- Sets up high-level project structure
+
+#### 3. **Planner Agent** 📝
 - Creates detailed task breakdowns in JSON format
-- Assigns tasks to appropriate agents
+- Detects programming languages and frameworks
+- Discovers and integrates A2A external agents
+- Assigns tasks to appropriate agents (internal or external)
 - Manages todo list and priorities
 
-### 2. Context Gatherer Agent ⭐ NEW
-- Analyzes existing codebases before changes
-- Finds relevant files and code
-- Understands project structure and patterns
-- Provides context to other agents
-- Uses semantic search and code analysis
-
-### 3. Software Architect Agent
-- Establishes repository/file structure
+#### 4. **Software Architect Agent** 🏗️
+- Establishes repository and file structure
+- Creates PROJECT_MANIFEST.md with tech stack and conventions
+- Sets up .agent-guidelines/ directory with coding standards
+- Documents architectural decisions and patterns
 - Creates shared configuration and boilerplate
-- Documents architectural decisions
-- Sets up project scaffolding
 
-### 4. Frontend Developer Agent
-- Writes HTML, CSS, JavaScript, TypeScript
-- Creates React/Vue components
-- Implements UI features
-- Follows frontend best practices
-- Uses context from existing code
+#### 5. **Coder Agent** 💻
+- Implements all code (dependencies, frontend, backend, config)
+- Validates syntax before marking tasks complete (MANDATORY)
+- Handles both frontend and backend development
+- Integrates with existing codebases
+- Self-corrects errors with up to 2 retries
 
-### 5. Backend Developer Agent
-- Writes Python (FastAPI, Flask, Django)
-- Creates Node.js/Express services
-- Implements API endpoints
-- Handles database operations
-- Integrates with existing backend code
-
-### 6. Tester & Validator Agent
-- Validates code syntax and style
-- Writes unit tests
+#### 6. **Tester & Validator Agent** 🧪
+- Validates code syntax and style across all files
+- Writes comprehensive unit tests
 - Executes tests automatically
-- Performs code analysis
-- Provides quality feedback
+- Performs code analysis and quality checks
+- Provides detailed quality feedback
 
-### 7. Error Recovery Agent ⭐ NEW
+#### 7. **Error Recovery Agent** 🔧
 - Monitors for errors in code and tests
-- Analyzes error messages
+- Analyzes error messages and stack traces
 - Proposes and implements fixes
-- Retries failed operations
+- Retries failed operations with intelligent strategies
 - Self-corrects with iterative refinement
 
-### 8. Orchestrator Agent
-- Coordinates workflow between agents
-- Routes tasks appropriately
-- Aggregates results
-- Provides final summaries
+#### 8. **A2A Client Agent** 🔗
+- Communicates with external agents via A2A protocol
+- Handles task delegation to external services
+- Manages authentication and error handling
+- Integrates external results into main workflow
 
-## A2A External Agent Integration 🆕
+#### 9. **Onchain Detective Agent** ⛓️
+- Blockchain-specific agent for onchain data analysis
+- Supports Ethereum, Hedera, and other chains
+- Analyzes smart contracts and transactions
+- Integrates blockchain data into applications
 
-NilCode now supports connecting to external AI agents using the **Agent-to-Agent (A2A) protocol**. This allows you to:
+## 🔗 A2A External Agent Integration
+
+NilCode supports connecting to external AI agents using the **Agent-to-Agent (A2A) protocol**. This allows you to:
 
 - **Delegate specialized tasks** to external expert agents
 - **Extend capabilities** without modifying core code
@@ -96,22 +109,46 @@ NilCode now supports connecting to external AI agents using the **Agent-to-Agent
 
 ### Quick Setup
 
-1. Configure external agents via environment variable:
+#### Option 1: Environment Variable (Inline JSON)
 ```bash
-export A2A_AGENTS='[{"name":"currency_converter","base_url":"http://localhost:9999"}]'
+export A2A_AGENTS='[
+  {
+    "name": "currency_converter",
+    "base_url": "http://localhost:9999",
+    "auth_token": "optional-token"
+  },
+  {
+    "name": "weather_service",
+    "base_url": "http://localhost:8888"
+  }
+]'
 ```
 
-Or use a configuration file:
+#### Option 2: Configuration File
+Create `a2a_agents.json`:
+```json
+{
+  "external_agents": [
+    {
+      "name": "hedera-manager",
+      "base_url": "http://localhost:9000",
+      "auth_token": null
+    },
+    {
+      "name": "data_analyzer",
+      "base_url": "http://localhost:8888",
+      "auth_token": "your-auth-token-if-needed"
+    }
+  ]
+}
+```
+
+Then set the config path:
 ```bash
 export A2A_CONFIG_PATH=a2a_agents.json
 ```
 
-2. NilCode will automatically discover these agents at startup
-3. The planner can now assign tasks to external agents
-4. Results are seamlessly integrated into the workflow
-
-### Example
-
+### Example Usage
 ```bash
 # Start an external A2A agent server
 python your_a2a_agent.py
@@ -127,302 +164,363 @@ uv run nilcode "Analyze this dataset: [1, 2, 3, 4, 5]"
 
 **🚀 Run [examples/a2a_integration_demo.py](examples/a2a_integration_demo.py) for a working demo**
 
-## Installation
+## 🚀 Installation
 
 ### Prerequisites
-- Python 3.14+
-- [uv](https://github.com/astral-sh/uv) package manager
+- **Python 3.14+** (required)
+- **[uv](https://github.com/astral-sh/uv)** package manager (recommended)
+- **API Key**: OpenRouter or OpenAI API key
 
-### Setup
+### Quick Setup
 
-1. Clone the repository:
+1. **Clone the repository:**
 ```bash
 git clone <repository-url>
-cd a2a_testagent
+cd nilcode
 ```
 
-2. Install dependencies:
+2. **Install dependencies:**
 ```bash
 uv sync
 ```
 
-3. Configure environment variables:
+3. **Set up environment variables:**
 ```bash
-cp .env.example .env
-# Edit .env and add your API keys
+# Create .env file
+touch .env
 ```
 
-Required environment variables:
-```
-OPENROUTER_API_KEY=your_api_key_here
-OPENROUTER_ENDPOINT=https://openrouter.ai/api/v1
+4. **Configure your API key in `.env`:**
+```bash
+# Required: Choose ONE of these options
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
 # OR
-OPENAI_API_KEY=your_api_key_here
+OPENAI_API_KEY=sk-your-key-here
+
+# Optional: Custom endpoints
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENAI_BASE_URL=https://api.openai.com/v1
+
+# Optional: Debug mode
+DEBUG=1
+
+# Optional: A2A External Agents (see A2A section above)
+A2A_AGENTS='[{"name":"agent1","base_url":"http://localhost:9999"}]'
+# OR
+A2A_CONFIG_PATH=a2a_agents.json
 ```
 
-## Usage
+### Environment Variables Reference
+
+#### Required API Keys (Choose One)
+```bash
+# OpenRouter API Key (recommended)
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
+
+# OpenAI API Key (alternative)
+OPENAI_API_KEY=sk-your-key-here
+```
+
+#### Optional Configuration
+```bash
+# Custom API endpoints
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENAI_BASE_URL=https://api.openai.com/v1
+
+# Debug mode (enables verbose logging)
+DEBUG=1
+
+# A2A External Agents Configuration
+A2A_AGENTS='[{"name":"agent1","base_url":"http://localhost:9999"}]'
+A2A_CONFIG_PATH=a2a_agents.json
+
+# LangSmith tracing (optional)
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_API_KEY=your-langsmith-key
+LANGCHAIN_PROJECT=nilcode
+```
+
+## 🎯 Usage
 
 ### Command Line Interface
 
-Run the interactive CLI:
+#### Interactive Mode (Recommended)
 ```bash
-uv run python src/main_agent.py
+uv run nilcode
+```
+
+#### Single Command Mode
+```bash
+uv run nilcode "Create a Python calculator with unit tests"
+```
+
+#### Global Installation (Optional)
+```bash
+# Install globally as a tool
+uv tool install .
+
+# Then use anywhere
+nilcode "Create a REST API with FastAPI"
 ```
 
 ### Demo Scripts
 
-Run the comprehensive demo:
+#### Multi-Agent Demo
 ```bash
 uv run python examples/multi_agent_demo.py
 ```
 
-### Programmatic Usage
-
-```python
-from src.main_agent import create_agent_system
-
-# Create the agent system
-agent_system = create_agent_system()
-
-# Run a request
-final_state = agent_system.run(
-    "Create a Python calculator module with add, subtract, multiply, and divide functions"
-)
-
-# Check results
-print(f"Status: {final_state['overall_status']}")
-print(f"Plan: {final_state['plan']}")
+#### A2A Integration Demo
+```bash
+uv run python examples/a2a_integration_demo.py
 ```
 
-### Streaming Mode
+## 🔄 Workflow
 
-For real-time progress updates:
-
-```python
-from src.main_agent import create_agent_system
-
-agent_system = create_agent_system()
-
-for state_update in agent_system.stream("Create a REST API with FastAPI"):
-    agent_name = list(state_update.keys())[0]
-    print(f"Agent '{agent_name}' is executing...")
-```
-
-## Examples
-
-### Example 1: Simple Calculator
-
-```python
-agent_system.run("""
-Create a Python calculator module with:
-- add(a, b)
-- subtract(a, b)
-- multiply(a, b)
-- divide(a, b) with error handling for division by zero
-Include unit tests.
-""")
-```
-
-### Example 2: Web Application
-
-```python
-agent_system.run("""
-Create a simple todo list web app:
-- Frontend: HTML/CSS/JS with a form and list display
-- Backend: FastAPI server with /todos endpoints
-- In-memory storage
-""")
-```
-
-### Example 3: API Development
-
-```python
-agent_system.run("""
-Create a REST API for a blog:
-- User authentication endpoints
-- CRUD operations for blog posts
-- Python FastAPI implementation
-- Include validation and error handling
-""")
-```
-
-## Project Structure
-
-```
-a2a_testagent/
-├── src/
-│   ├── __init__.py
-│   ├── main_agent.py
-│   ├── agents/
-│   │   ├── __init__.py
-│   │   ├── backend_developer.py
-│   │   ├── frontend_developer.py
-│   │   ├── orchestrator.py
-│   │   ├── planner.py
-│   │   ├── software_architect.py
-│   │   ├── tester.py
-│   │   └── utils.py
-│   ├── state/
-│   │   ├── __init__.py
-│   │   └── agent_state.py
-│   └── tools/
-│       ├── __init__.py
-│       ├── code_analysis.py
-│       ├── file_operations.py
-│       └── task_management.py
-├── examples/
-│   ├── a2a_example.py
-│   └── multi_agent_demo.py
-├── ARCHITECTURE.md
-├── QUICKSTART.md
-├── README.md
-├── main.py
-├── pyproject.toml
-├── test_planner.py
-└── uv.lock
-```
-
-## Agent Tools
-
-### File Operations (`file_operations.py`)
-- `read_file`: Read file contents
-- `write_file`: Create or overwrite files
-- `edit_file`: Modify existing files with search/replace
-- `list_files`: List directory contents
-- `create_directory`: Create directories
-
-### Codebase Understanding (`codebase_tools.py`) ⭐ NEW
-- `find_definition`: Find where functions/classes are defined
-- `find_usages`: See where code is used
-- `analyze_project_structure`: Get project overview
-- `list_files_recursively`: Smart file discovery
-- `search_code_content`: Regex-powered code search
-
-### Terminal Execution (`terminal_tools.py`) ⭐ NEW
-- `run_command`: Execute shell commands
-- `run_python_script`: Run Python scripts
-- `install_package`: Install packages (pip/npm/uv)
-- `run_tests`: Execute tests (pytest/jest/unittest)
-- `run_linter`: Run linters (flake8/eslint/pylint)
-- `check_environment`: Verify available tools
-
-### Git Integration (`git_tools.py`) ⭐ NEW
-- `git_status`: Check modified files
-- `git_diff`: View file changes
-- `git_log`: See commit history
-- `git_branch_info`: Check branches
-- `git_show_file`: View file at commit
-- `git_file_history`: See file commit history
-- `git_check_conflicts`: Detect merge conflicts
-
-### Task Management (`task_management.py`)
-- `create_task`: Create new tasks
-- `update_task_status`: Update task progress
-- `update_task_result`: Record task results
-- `get_all_tasks`: View all tasks
-- `get_pending_tasks`: View pending tasks
-
-### Code Analysis (`code_analysis.py`)
-- `analyze_python_syntax`: Check Python syntax
-- `count_functions`: Count functions and classes
-- `check_imports`: List imports
-- `find_todos_in_code`: Find TODO/FIXME comments
-- `check_code_complexity`: Analyze complexity
-- `validate_code_style`: Check style issues
-
-## Workflow
+The typical workflow follows this sophisticated pattern:
 
 ```
 User Request
-    �
-Planner Agent (creates task breakdown)
-    �
-Frontend Developer Agent (if UI needed)
-    �
-Backend Developer Agent (if server-side needed)
-    �
-Tester & Validator Agent (validates & tests)
-    �
-Orchestrator Agent (aggregates & summarizes)
-    �
-Final Output
+    ↓
+Orchestrator (coordinates workflow)
+    ↓
+Preplanner (analyzes scope and approach)
+    ↓
+Planner (creates detailed task breakdown)
+    ├── Discovers A2A external agents
+    ├── Detects tech stack and frameworks
+    └── Assigns tasks to appropriate agents
+    ↓
+Software Architect (creates manifest & guidelines)
+    ├── Creates PROJECT_MANIFEST.md
+    ├── Sets up .agent-guidelines/
+    └── Documents architecture
+    ↓
+Coder (implements with validation)
+    ├── Validates syntax (MANDATORY)
+    ├── Self-corrects errors (up to 2 retries)
+    └── Only marks complete if validation passes
+    ↓
+Tester (validates & tests)
+    ├── Comprehensive validation
+    ├── Unit test generation
+    └── Quality analysis
+    ↓
+Error Recovery (if needed)
+    ├── Analyzes errors
+    ├── Proposes fixes
+    └── Implements corrections
+    ↓
+A2A Client (for external tasks)
+    ├── Communicates with external agents
+    ├── Handles authentication
+    └── Integrates results
+    ↓
+Orchestrator (aggregates results)
+    ├── Combines all outputs
+    ├── Provides final summary
+    └── Reports overall status
 ```
 
-## Configuration
+## ⚙️ Configuration
 
 ### Model Selection
 
-The system uses OpenAI-compatible models. Configure in agent creation:
+The system uses OpenAI-compatible models. Configure via environment variables:
 
-```python
-from src.agents import create_planner_agent
+```bash
+# Default model (OpenRouter)
+OPENROUTER_API_KEY=sk-or-v1-your-key
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 
-planner = create_planner_agent(
-    api_key="your_api_key",
-    base_url="https://your-api-endpoint.com"  # Optional
-)
+# Alternative: OpenAI
+OPENAI_API_KEY=sk-your-key
+OPENAI_BASE_URL=https://api.openai.com/v1
 ```
 
-Default model: `openai/gpt-oss-20b` (via OpenRouter)
+**Default model**: `openai/gpt-oss-20b` (via OpenRouter)
 
-### Temperature Settings
+## 📁 Project Structure
 
-- Planner: 0.3 (balanced creativity and structure)
-- Developers: 0.2 (more deterministic code)
-- Tester: 0.1 (consistent validation)
+```
+nilcode/
+├── src/nilcode/                    # Main package
+│   ├── agents/                     # Specialized agents
+│   │   ├── orchestrator.py        # Workflow coordination
+│   │   ├── preplanner.py          # Initial analysis
+│   │   ├── planner.py             # Task breakdown
+│   │   ├── software_architect.py  # Architecture & manifest
+│   │   ├── coder.py               # Code implementation
+│   │   ├── tester.py              # Validation & testing
+│   │   ├── error_recovery.py      # Error fixing
+│   │   ├── a2a_client.py          # External agent communication
+│   │   ├── onchain_detective.py   # Blockchain analysis
+│   │   └── utils.py               # Agent utilities
+│   ├── state/                     # State management
+│   │   └── agent_state.py         # Shared state definition
+│   ├── tools/                     # Agent tools
+│   │   ├── file_operations.py     # File management
+│   │   ├── task_management.py     # Task handling
+│   │   ├── validation_tools.py    # Code validation
+│   │   ├── terminal_tools.py      # Command execution
+│   │   ├── git_tools.py           # Git operations
+│   │   └── onchain_tools.py       # Blockchain tools
+│   ├── a2a/                       # A2A integration
+│   │   └── registry.py            # External agent registry
+│   ├── main_agent.py               # Main entry point
+│   ├── cli.py                     # Command-line interface
+│   └── config.py                  # Configuration management
+├── examples/                       # Demo scripts
+│   ├── multi_agent_demo.py        # Multi-agent demonstration
+│   └── a2a_integration_demo.py    # A2A integration demo
+├── docs/                          # Documentation
+│   └── A2A_INTEGRATION.md         # A2A protocol guide
+├── external_agents/               # Example external agents
+│   └── hedera-manager/            # Hedera blockchain agent
+├── a2a_agents.json               # A2A configuration
+├── pyproject.toml                 # Project configuration
+├── README.md                      # This file
+└── CLAUDE.md                      # Development guidelines
+```
 
-## Limitations
+### Creating Custom Agents
 
-- Code generation quality depends on the underlying LLM
-- File operations are local only (no remote access)
-- Task storage is in-memory (resets between sessions)
-- No persistent project state across runs
-- Limited to text-based code generation
+Follow the agent implementation pattern:
 
-## Future Enhancements
+```python
+from nilcode.state.agent_state import AgentState
+from nilcode.tools.file_operations import read_file, write_file
 
-- [ ] Persistent task and project storage
-- [ ] Integration with version control (Git)
-- [ ] Support for more programming languages
-- [ ] Web UI for better visualization
-- [ ] Agent-to-agent communication improvements
-- [ ] Context window management for large projects
-- [ ] Integration with package managers
-- [ ] Code execution and testing capabilities
+def create_custom_agent(api_key: str, base_url: str = None):
+    """Create a custom agent following the standard pattern."""
+    from langchain_openai import ChatOpenAI
+    
+    model = ChatOpenAI(
+        api_key=api_key,
+        base_url=base_url,
+        temperature=0.2,
+        max_tokens=4096
+    )
+    
+    tools = [read_file, write_file]  # Add your tools
+    agent_with_tools = model.bind_tools(tools)
+    
+    def agent(state: AgentState) -> AgentState:
+        # Process state, call LLM, update state
+        # Return updated state
+        return state
+    
+    return agent
+```
 
-## Contributing
+## 🚨 Troubleshooting
+
+### Common Issues
+
+#### API Key Not Found
+```bash
+# Error: Missing API key
+❌ Error: API key not found!
+
+# Solution: Set one of these in .env
+OPENROUTER_API_KEY=sk-or-v1-your-key
+# OR
+OPENAI_API_KEY=sk-your-key
+```
+
+#### A2A Agents Not Discovered
+```bash
+# Problem: No external agents found
+⚠️  No external agents configured!
+
+# Solutions:
+# 1. Set environment variable
+export A2A_AGENTS='[{"name":"agent1","base_url":"http://localhost:9999"}]'
+
+# 2. Create config file
+echo '{"external_agents":[{"name":"agent1","base_url":"http://localhost:9999"}]}' > a2a_agents.json
+export A2A_CONFIG_PATH=a2a_agents.json
+
+# 3. Verify external agent is running
+curl http://localhost:9999/.well-known/agent-card.json
+```
+
+#### Syntax Validation Errors
+```bash
+# Problem: Coder agent fails validation
+❌ Syntax validation failed
+
+# Solutions:
+# 1. Check Python version (requires 3.14+)
+python --version
+
+# 2. Enable debug mode
+export DEBUG=1
+
+# 3. Check validation tools
+uv run python -c "from nilcode.tools.validation_tools import validate_python_syntax; print('OK')"
+```
+
+#### Import Errors
+```bash
+# Problem: Module not found
+ModuleNotFoundError: No module named 'nilcode'
+
+# Solution: Install in development mode
+uv sync
+# OR
+pip install -e .
+```
+
+### Debug Mode
+
+Enable debug output for troubleshooting:
+
+```bash
+export DEBUG=1
+uv run nilcode "Your request here"
+```
+
+This will show:
+- Agent execution details
+- Tool calls and responses
+- State transitions
+- Error details and stack traces
+
+
+## 🤝 Contributing
 
 Contributions are welcome! Please:
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Make your changes** following the coding standards
+4. **Add tests** if applicable
+5. **Update documentation** as needed
+6. **Submit a pull request**
 
-## License
+### Development Guidelines
 
-[Add your license here]
+- Follow the agent implementation patterns in `.cursor/rules/`
+- Use the project's coding standards defined in `.agent-guidelines/`
+- Test your changes with the demo scripts
+- Update documentation for new features
+- Ensure all agents follow the state management patterns
 
-## Acknowledgments
+## 📄 License
+
+MIT
+
+## 🙏 Acknowledgments
 
 Built with:
-- [LangChain](https://github.com/langchain-ai/langchain)
-- [LangGraph](https://github.com/langchain-ai/langgraph)
-- [OpenRouter](https://openrouter.ai/)
+- [LangChain](https://github.com/langchain-ai/langchain) - LLM framework
+- [LangGraph](https://github.com/langchain-ai/langgraph) - Multi-agent orchestration
+- [OpenRouter](https://openrouter.ai/) - Model access
+- [A2A SDK](https://pypi.org/project/a2a-sdk/) - Agent-to-Agent protocol
 
 Inspired by:
 - Claude Code (Anthropic)
-- GitHub Codex
+- OpenAI Codex
 - Multi-agent systems research
-
-## Support
-
-For issues, questions, or contributions:
-- Open an issue on GitHub
-- Check existing documentation
-- Review example scripts
-
----
-
-**Note**: This is a demonstration system. While it can generate functional code, always review and test generated code before using it in production.
+- Agent-to-Agent protocol specification
